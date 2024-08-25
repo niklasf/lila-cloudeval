@@ -3,5 +3,5 @@
 mod db;
 mod options;
 
-pub use options::Options;
 pub use db::Db;
+pub use options::Options;
