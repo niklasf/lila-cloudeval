@@ -1,0 +1,8 @@
+[package]
+name = "terarkdb-sys"
+links = "terarkdb"
+description = "Low level bindings for TerarkDB"
+edition = "2021"
+
+[build-dependencies]
+bindgen = "0.70.1"
