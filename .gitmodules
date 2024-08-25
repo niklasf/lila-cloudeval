@@ -1,0 +1,3 @@
+[submodule "terarkdb"]
+	path = terarkdb
+	url = https://github.com/noobpwnftw/terarkdb.git
