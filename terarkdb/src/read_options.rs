@@ -8,6 +8,12 @@ pub struct ReadOptions {
     inner: NonNull<rocksdb_readoptions_t>,
 }
 
+impl Default for ReadOptions {
+    fn default() -> ReadOptions {
+        ReadOptions::new()
+    }
+}
+
 impl ReadOptions {
     pub fn new() -> ReadOptions {
         ReadOptions {

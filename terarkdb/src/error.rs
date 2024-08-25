@@ -34,12 +34,16 @@ impl Error {
         }
     }
 
+    pub(crate) fn is_null(&self) -> bool {
+        self.inner.is_null()
+    }
+
     pub(crate) fn as_mut_ptr(&mut self) -> *mut *mut c_char {
         &mut self.inner
     }
 
     pub(crate) fn as_cstr(&self) -> &CStr {
-        if self.inner.is_null() {
+        if self.is_null() {
             c"no error"
         } else {
             unsafe { CStr::from_ptr(self.inner) }
@@ -49,7 +53,7 @@ impl Error {
 
 impl Drop for Error {
     fn drop(&mut self) {
-        if !self.inner.is_null() {
+        if !self.is_null() {
             unsafe {
                 rocksdb_free(self.inner.cast::<c_void>());
             }
