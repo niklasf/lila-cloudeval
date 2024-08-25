@@ -34,11 +34,11 @@ impl Error {
         }
     }
 
-    pub fn as_mut_ptr(&mut self) -> *mut *mut c_char {
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut *mut c_char {
         &mut self.inner
     }
 
-    pub fn as_cstr(&self) -> &CStr {
+    pub(crate) fn as_cstr(&self) -> &CStr {
         if self.inner.is_null() {
             c"no error"
         } else {

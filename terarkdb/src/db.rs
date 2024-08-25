@@ -31,11 +31,7 @@ impl Db {
         })
     }
 
-    pub fn as_ptr(&self) -> *const rocksdb_t {
-        self.inner.as_ptr()
-    }
-
-    pub fn as_mut_ptr(&self) -> *mut rocksdb_t {
+    pub(crate) fn as_mut_ptr(&self) -> *mut rocksdb_t {
         self.inner.as_ptr()
     }
 }
