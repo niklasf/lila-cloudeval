@@ -1,4 +1,4 @@
-use std::{ffi::c_int, num::NonZeroUsize, ptr::NonNull};
+use std::{ffi::c_int, ptr::NonNull};
 
 use terarkdb_sys::{
     rocksdb_options_create, rocksdb_options_destroy, rocksdb_options_increase_parallelism,

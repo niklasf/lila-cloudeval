@@ -3,7 +3,7 @@ use std::{
     ptr::NonNull,
 };
 
-use terarkdb_sys::{rocksdb_open_for_read_only, rocksdb_t};
+use terarkdb_sys::{rocksdb_close, rocksdb_open_for_read_only, rocksdb_t};
 
 use crate::{error::Error, options::Options};
 
@@ -29,5 +29,13 @@ impl Db {
             })
             .ok_or(error)?,
         })
+    }
+}
+
+impl Drop for Db {
+    fn drop(&mut self) {
+        unsafe {
+            rocksdb_close(self.inner.as_mut());
+        }
     }
 }
