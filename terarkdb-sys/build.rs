@@ -1,8 +1,11 @@
 use std::{env, path::PathBuf};
 
 fn main() {
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+
     println!("cargo::rerun-if-changed=terarkdb");
-    println!("cargo::rustc-link-search=native=terarkdb/output/lib");
+    println!("cargo::rustc-link-search=native={}", manifest_dir.join("terarkdb").join("output").join("lib").display());
     println!("cargo::rustc-link-lib=static=terarkdb");
     println!("cargo::rustc-link-lib=static=terark-zip-r");
     println!("cargo::rustc-link-lib=static=boost_fiber");
@@ -17,8 +20,6 @@ fn main() {
     println!("cargo::rustc-link-lib=dylib=aio");
     println!("cargo::rustc-link-lib=dylib=gomp");
     println!("cargo::rustc-link-lib=dylib=stdc++");
-
-    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
 
     bindgen::builder()
         .layout_tests(false)

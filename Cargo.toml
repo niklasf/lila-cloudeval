@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "terarkdb-sys"
+]
+resolver = "2"
