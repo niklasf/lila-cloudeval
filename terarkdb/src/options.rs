@@ -9,20 +9,31 @@ pub struct Options {
     inner: NonNull<rocksdb_options_t>,
 }
 
+impl Default for Options {
+    fn default() -> Options {
+        Options::new()
+    }
+}
+
 impl Options {
-    pub fn create() -> Options {
+    pub fn new() -> Options {
         Options {
             inner: NonNull::new(unsafe { rocksdb_options_create() }).unwrap(),
         }
     }
 
-    pub fn increase_parallelism(&mut self, total_threads: NonZeroUsize) {
+    pub fn increase_parallelism(&mut self, total_threads: usize) {
+        assert!(total_threads >= 1);
         unsafe {
             rocksdb_options_increase_parallelism(
                 self.inner.as_ptr(),
-                c_int::try_from(usize::from(total_threads)).unwrap(),
+                c_int::try_from(total_threads).unwrap(),
             );
         };
+    }
+
+    pub fn as_ptr(&self) -> *const rocksdb_options_t {
+        self.inner.as_ptr()
     }
 }
 
