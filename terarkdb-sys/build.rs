@@ -23,6 +23,7 @@ fn main() {
     bindgen::builder()
         .layout_tests(false)
         .header("terarkdb/output/include/rocksdb/c.h")
+        .allowlist_item("rocksdb_.*")
         .generate()
         .unwrap()
         .write_to_file(out_dir.join("bindings.rs"))
