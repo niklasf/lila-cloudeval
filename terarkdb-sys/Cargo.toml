@@ -1,5 +1,6 @@
 [package]
 name = "terarkdb-sys"
+version = "0.1.0+noobpwnftw-2024-08-21"
 links = "terarkdb"
 description = "Low level bindings for TerarkDB"
 edition = "2021"

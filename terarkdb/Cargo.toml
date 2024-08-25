@@ -1,0 +1,8 @@
+[package]
+name = "terarkdb"
+version = "0.1.0"
+description = "Bindings for TerarkDB"
+edition = "2021"
+
+[dependencies]
+terarkdb-sys = { version = "0.1.0", path = "../terarkdb-sys" }

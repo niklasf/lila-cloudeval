@@ -209,8 +209,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "terarkdb"
+version = "0.1.0"
+dependencies = [
+ "terarkdb-sys",
+]
+
+[[package]]
 name = "terarkdb-sys"
-version = "0.0.0"
+version = "0.1.0+noobpwnftw-2024-08-21"
 dependencies = [
  "bindgen",
 ]
