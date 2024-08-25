@@ -13,6 +13,7 @@ fn main() {
     iterator.seek_to_first();
     while let Some((key, value)) = iterator.item() {
         println!("{key:?}: {value:?}");
+        iterator.next();
     }
 
     iterator.status().unwrap();

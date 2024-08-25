@@ -2,8 +2,8 @@ use std::{ffi::c_char, marker::PhantomData, ptr::NonNull, slice};
 
 use terarkdb_sys::{
     rocksdb_create_iterator, rocksdb_iter_destroy, rocksdb_iter_get_error, rocksdb_iter_key,
-    rocksdb_iter_seek_to_first, rocksdb_iter_seek_to_last, rocksdb_iter_valid, rocksdb_iter_value,
-    rocksdb_iterator_t,
+    rocksdb_iter_next, rocksdb_iter_prev, rocksdb_iter_seek_to_first, rocksdb_iter_seek_to_last,
+    rocksdb_iter_valid, rocksdb_iter_value, rocksdb_iterator_t,
 };
 
 use crate::{db::Db, error::Error, read_options::ReadOptions};
@@ -52,6 +52,34 @@ impl<'db, 'options> Iterator<'db, 'options> {
         unsafe {
             rocksdb_iter_seek_to_last(self.as_mut_ptr());
         };
+    }
+
+    pub unsafe fn next_unchecked(&mut self) {
+        unsafe {
+            rocksdb_iter_next(self.as_mut_ptr());
+        }
+    }
+
+    pub fn next(&mut self) {
+        if self.valid() {
+            unsafe {
+                self.next_unchecked();
+            }
+        }
+    }
+
+    pub unsafe fn prev_unchecked(&mut self) {
+        unsafe {
+            rocksdb_iter_prev(self.as_mut_ptr());
+        }
+    }
+
+    pub fn prev(&mut self) {
+        if self.valid() {
+            unsafe {
+                self.prev_unchecked();
+            }
+        }
     }
 
     pub unsafe fn key_unchecked(&self) -> &[u8] {
