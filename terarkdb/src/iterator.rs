@@ -4,19 +4,21 @@ use terarkdb_sys::{rocksdb_create_iterator, rocksdb_iter_destroy, rocksdb_iterat
 
 use crate::{db::Db, read_options::ReadOptions};
 
-pub struct Iterator<'db> {
+pub struct Iterator<'db, 'options> {
     inner: NonNull<rocksdb_iterator_t>,
     db: PhantomData<&'db Db>,
+    options: PhantomData<&'options ReadOptions>, // for bounds
 }
 
-impl Iterator<'_> {
-    pub fn new<'db>(db: &'db Db, options: &ReadOptions) -> Iterator<'db> {
+impl<'db, 'options> Iterator<'db, 'options> {
+    pub fn new(db: &'db Db, options: &'options ReadOptions) -> Iterator<'db, 'options> {
         Iterator {
             inner: NonNull::new(unsafe {
                 rocksdb_create_iterator(db.as_mut_ptr(), options.as_ptr())
             })
             .unwrap(),
             db: PhantomData,
+            options: PhantomData,
         }
     }
 
@@ -29,7 +31,7 @@ impl Iterator<'_> {
     }
 }
 
-impl Drop for Iterator<'_> {
+impl Drop for Iterator<'_, '_> {
     fn drop(&mut self) {
         unsafe { rocksdb_iter_destroy(self.as_mut_ptr()) };
     }
