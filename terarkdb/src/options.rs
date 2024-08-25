@@ -35,12 +35,16 @@ impl Options {
     pub fn as_ptr(&self) -> *const rocksdb_options_t {
         self.inner.as_ptr()
     }
+
+    pub fn as_mut_ptr(&mut self) -> *mut rocksdb_options_t {
+        self.inner.as_ptr()
+    }
 }
 
 impl Drop for Options {
     fn drop(&mut self) {
         unsafe {
-            rocksdb_options_destroy(self.inner.as_ptr());
+            rocksdb_options_destroy(self.as_mut_ptr());
         }
     }
 }

@@ -30,12 +30,20 @@ impl Db {
             .ok_or(error)?,
         })
     }
+
+    pub fn as_ptr(&self) -> *const rocksdb_t {
+        self.inner.as_ptr()
+    }
+
+    pub fn as_mut_ptr(&self) -> *mut rocksdb_t {
+        self.inner.as_ptr()
+    }
 }
 
 impl Drop for Db {
     fn drop(&mut self) {
         unsafe {
-            rocksdb_close(self.inner.as_mut());
+            rocksdb_close(self.as_mut_ptr());
         }
     }
 }
