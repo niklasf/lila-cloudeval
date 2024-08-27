@@ -4,6 +4,7 @@ mod db;
 mod error;
 mod iterator;
 mod options;
+mod pinnable_slice;
 mod read_options;
 
 pub use db::Db;

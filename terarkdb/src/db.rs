@@ -1,11 +1,13 @@
 use std::{
-    ffi::{c_uchar, CStr},
+    ffi::{c_char, c_uchar, CStr},
     ptr::NonNull,
 };
 
-use terarkdb_sys::{rocksdb_close, rocksdb_open_for_read_only, rocksdb_t};
+use terarkdb_sys::{rocksdb_close, rocksdb_get_pinned, rocksdb_open_for_read_only, rocksdb_t};
 
-use crate::{error::Error, options::Options};
+use crate::{
+    error::Error, options::Options, pinnable_slice::PinnableSlice, read_options::ReadOptions,
+};
 
 pub struct Db {
     inner: NonNull<rocksdb_t>,
@@ -29,6 +31,28 @@ impl Db {
             })
             .ok_or(error)?,
         })
+    }
+
+    pub fn get<'db>(
+        &'db self,
+        key: &[u8],
+        read_options: &ReadOptions,
+    ) -> Result<Option<PinnableSlice<'db>>, Error> {
+        let mut error = Error::new();
+        let maybe_slice = unsafe {
+            PinnableSlice::new(rocksdb_get_pinned(
+                self.as_mut_ptr(),
+                read_options.as_ptr(),
+                key.as_ptr().cast::<c_char>(),
+                key.len(),
+                error.as_mut_ptr(),
+            ))
+        };
+        if error.is_null() {
+            Ok(maybe_slice)
+        } else {
+            Err(error)
+        }
     }
 
     pub(crate) fn as_mut_ptr(&self) -> *mut rocksdb_t {
