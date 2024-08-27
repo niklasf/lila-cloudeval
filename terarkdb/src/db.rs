@@ -34,7 +34,11 @@ impl Db {
         })
     }
 
-    pub fn get<'db>(
+    pub fn get<'db>(&'db self, key: &[u8]) -> Result<Option<PinnableSlice<'db>>, Error> {
+        self.get_opt(key, &ReadOptions::default())
+    }
+
+    pub fn get_opt<'db>(
         &'db self,
         key: &[u8],
         read_options: &ReadOptions,
