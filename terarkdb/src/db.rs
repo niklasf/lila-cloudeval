@@ -20,16 +20,17 @@ impl Db {
         error_if_log_file_exists: bool,
     ) -> Result<Db, Error> {
         let mut error = Error::new();
-        Ok(Db {
-            inner: NonNull::new(unsafe {
-                rocksdb_open_for_read_only(
-                    options.as_ptr(),
-                    name.as_ptr(),
-                    c_uchar::from(error_if_log_file_exists),
-                    error.as_mut_ptr(),
-                )
-            })
-            .ok_or(error)?,
+        let maybe_db = unsafe {
+            rocksdb_open_for_read_only(
+                options.as_ptr(),
+                name.as_ptr(),
+                c_uchar::from(error_if_log_file_exists),
+                error.as_mut_ptr(),
+            )
+        };
+
+        error.or_else(|| Db {
+            inner: NonNull::new(maybe_db).unwrap(),
         })
     }
 
@@ -48,11 +49,8 @@ impl Db {
                 error.as_mut_ptr(),
             ))
         };
-        if error.is_null() {
-            Ok(maybe_slice)
-        } else {
-            Err(error)
-        }
+
+        error.or(maybe_slice)
     }
 
     pub(crate) fn as_mut_ptr(&self) -> *mut rocksdb_t {

@@ -34,6 +34,25 @@ impl Error {
         }
     }
 
+    pub(crate) fn or<T>(self, value: T) -> Result<T, Error> {
+        if self.is_null() {
+            Ok(value)
+        } else {
+            Err(self)
+        }
+    }
+
+    pub(crate) fn or_else<T, F>(self, f: F) -> Result<T, Error>
+    where
+        F: FnOnce() -> T,
+    {
+        if self.is_null() {
+            Ok(f())
+        } else {
+            Err(self)
+        }
+    }
+
     pub(crate) fn is_null(&self) -> bool {
         self.inner.is_null()
     }
