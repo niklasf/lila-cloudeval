@@ -34,15 +34,16 @@ impl Db {
         })
     }
 
-    pub fn get<'db>(&'db self, key: &[u8]) -> Result<Option<PinnableSlice<'db>>, Error> {
+    pub fn get<'db, K: AsRef<[u8]>>(&'db self, key: K) -> Result<Option<PinnableSlice<'db>>, Error> {
         self.get_opt(key, &ReadOptions::default())
     }
 
-    pub fn get_opt<'db>(
+    pub fn get_opt<'db, K: AsRef<[u8]>>(
         &'db self,
-        key: &[u8],
+        key: K,
         read_options: &ReadOptions,
     ) -> Result<Option<PinnableSlice<'db>>, Error> {
+        let key = key.as_ref();
         let mut error = Error::new();
         let maybe_slice = unsafe {
             PinnableSlice::new(rocksdb_get_pinned(
