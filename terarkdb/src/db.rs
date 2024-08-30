@@ -3,7 +3,9 @@ use std::{
     ptr::NonNull,
 };
 
-use terarkdb_sys::{rocksdb_close, rocksdb_get_pinned, rocksdb_open_for_read_only, rocksdb_t};
+use terarkdb_sys::{
+    rocksdb_close, rocksdb_get_pinned, rocksdb_open, rocksdb_open_for_read_only, rocksdb_t,
+};
 
 use crate::{
     error::Error, options::Options, pinnable_slice::PinnableSlice, read_options::ReadOptions,
@@ -14,6 +16,15 @@ pub struct Db {
 }
 
 impl Db {
+    pub fn open(options: &Options, name: &CStr) -> Result<Db, Error> {
+        let mut error = Error::new();
+        let maybe_db = unsafe { rocksdb_open(options.as_ptr(), name.as_ptr(), error.as_mut_ptr()) };
+
+        error.or_else(|| Db {
+            inner: NonNull::new(maybe_db).unwrap(),
+        })
+    }
+
     pub fn open_for_readonly(
         options: &Options,
         name: &CStr,
@@ -34,7 +45,10 @@ impl Db {
         })
     }
 
-    pub fn get<'db, K: AsRef<[u8]>>(&'db self, key: K) -> Result<Option<PinnableSlice<'db>>, Error> {
+    pub fn get<'db, K: AsRef<[u8]>>(
+        &'db self,
+        key: K,
+    ) -> Result<Option<PinnableSlice<'db>>, Error> {
         self.get_opt(key, &ReadOptions::default())
     }
 
