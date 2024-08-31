@@ -158,6 +158,9 @@ fn hex_fen(setup: &Setup) -> String {
         hex_fen.push('0');
     }
 
+    // Space
+    hex_fen.push('9');
+
     // Ep square
     if let Some(ep_square) = setup.ep_square {
         hex_fen.push(match ep_square.file() {
@@ -170,23 +173,17 @@ fn hex_fen(setup: &Setup) -> String {
             File::G => '7',
             File::H => '8',
         });
-        hex_fen.push('e');
-        hex_fen.push(match ep_square.rank() {
-            Rank::First => 'a',
-            Rank::Second => 'b',
-            Rank::Third => 'c',
-            Rank::Fourth => 'd',
-            Rank::Fifth => 'e',
-            Rank::Sixth => 'f',
-            Rank::Seventh => 'g',
-            Rank::Eighth => 'h',
-        });
+        hex_fen.push(ep_square.rank().char());
     } else {
-        hex_fen.push('9');
+        hex_fen.push('0');
     }
 
     if hex_fen.len() % 2 == 1 {
-        hex_fen.push('0');
+        if hex_fen.ends_with('0') {
+            hex_fen.pop();
+        } else {
+            hex_fen.push('0');
+        }
     }
 
     hex_fen
@@ -206,6 +203,6 @@ fn test_cdb_fen() {
     let mut reader = csv::Reader::from_path("tests/cdb_fen.csv").expect("reader");
     for (i, record) in reader.deserialize().enumerate() {
         let record: Record = record.expect("record");
-        assert_eq!(hex_fen(record.fen.as_setup()), record.cdb_fen, "line {}", i + 1);
+        assert_eq!(hex_fen(record.fen.as_setup()), record.cdb_fen, "line {}: {}", i + 2, record.fen);
     }
 }
