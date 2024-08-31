@@ -1,5 +1,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+mod legacy_key;
+
 use terarkdb::{Db, Iterator, Options, ReadOptions};
 
 fn main() {

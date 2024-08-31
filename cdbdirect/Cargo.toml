@@ -5,4 +5,5 @@ description = "Query chessdb.cn database dump"
 edition = "2021"
 
 [dependencies]
+shakmaty = "0.27.1"
 terarkdb = { version = "0.1.0", path = "../terarkdb" }
