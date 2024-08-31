@@ -1,12 +1,6 @@
-use shakmaty::fen::Fen;
-use shakmaty::Color;
-use shakmaty::File;
-use shakmaty::Piece;
-use shakmaty::Rank;
-use shakmaty::Role;
-use shakmaty::Setup;
-use shakmaty::Square;
 use std::mem;
+
+use shakmaty::{fen::Fen, Color, File, Piece, Rank, Role, Setup, Square};
 
 fn push_empty(hex_fen: &mut String, empty: i32) {
     match empty {
