@@ -174,16 +174,10 @@ fn hex_fen(setup: &Setup) -> String {
             File::H => '8',
         });
         hex_fen.push(ep_square.rank().char());
-    } else {
-        hex_fen.push('0');
     }
 
     if hex_fen.len() % 2 == 1 {
-        if hex_fen.ends_with('0') {
-            hex_fen.pop();
-        } else {
-            hex_fen.push('0');
-        }
+        hex_fen.push('0');
     }
 
     hex_fen
