@@ -158,6 +158,22 @@ fn hex_fen(setup: &Setup) -> String {
     hex
 }
 
+fn bw(mut setup: Setup) -> Setup {
+    setup.board.flip_vertical();
+    setup.board.swap_colors();
+    setup.promoted = setup.promoted.flip_vertical();
+    setup.turn = !setup.turn;
+    if let Some(pockets) = &mut setup.pockets {
+        pockets.swap();
+    }
+    setup.castling_rights = setup.castling_rights.flip_vertical();
+    setup.ep_square = setup.ep_square.map(Square::flip_vertical);
+    if let Some(remaining_checks) = &mut setup.remaining_checks {
+        remaining_checks.swap();
+    }
+    setup
+}
+
 #[serde_as]
 #[derive(Deserialize)]
 struct Record {
@@ -172,10 +188,19 @@ fn test_cdb_fen() {
     let mut reader = csv::Reader::from_path("tests/cdb_fen.csv").expect("reader");
     for (i, record) in reader.deserialize().enumerate() {
         let record: Record = record.expect("record");
+
         assert_eq!(
             hex_fen(record.fen.as_setup()),
             record.cdb_fen,
-            "line {}: {}",
+            "line {}: cdb_fen mismatch for {}",
+            i + 2,
+            record.fen
+        );
+
+        assert_eq!(
+            hex_fen(&bw(record.fen.as_setup().clone())),
+            record.cdb_fen_bw,
+            "line {}: cdb_fen_bw mismatch for {}",
             i + 2,
             record.fen
         );
