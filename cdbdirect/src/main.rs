@@ -8,6 +8,7 @@ use std::{
         atomic::{AtomicU64, Ordering},
         Mutex,
     },
+    thread,
     time::Instant,
 };
 
@@ -40,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     rayon::scope(|s| {
         let (tx, rx) = crossbeam_channel::bounded::<String>(10_000);
 
-        for _ in 0..48 {
+        for _ in 0..usize::from(thread::available_parallelism().unwrap()) {
             let db = &db;
             let found = &found;
             let not_found = &not_found;
