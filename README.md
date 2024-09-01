@@ -1,7 +1,7 @@
 lila-cloudeval
 ==============
 
-Experimental cloud eval server for lichess.org. Work in progress.
+Experimental cloud eval server for https://lichess.org. Work in progress.
 
 Current idea
 ------------
@@ -17,13 +17,13 @@ We probably still want user provided evals (live broadcasts, shared studies), bu
 * [ ] Load pvs.
 * [ ] Data model for user provided analysis.
 * [ ] Server implementation.
-* [ ] Integrate into lila.
-* [ ] Integrate into lila-ws.
+* [ ] Integrate into `lila`.
+* [ ] Integrate into `lila-ws`.
 
 Usage
 -----
 
-Run a test roughly comparable to cdbdirect_threaded from https://github.com/vondele/cdbdirect:
+Run a test roughly comparable to `cdbdirect_threaded` from https://github.com/vondele/cdbdirect:
 
 ```sh
 git submodule update --init
@@ -36,6 +36,6 @@ Some paths are still hardcoded. Sorry.
 Acknowledgements
 ----------------
 
-Thanks [@noobpwnftw](https://github.com/noobpwnftw) for https://chessdb.cn and sharing the dastabase dumps.
+Thanks [@noobpwnftw](https://github.com/noobpwnftw) for https://chessdb.cn and sharing the database dumps.
 
 Thanks for [@vondele](https://github.com/vondele) for providing a [reference implementation of the chessdb.cn binary format](https://github.com/vondele/cdbdirect).
