@@ -61,6 +61,11 @@ impl ScoredMoves {
         self.ply_from_root
     }
 
+    pub fn clear(&mut self) {
+        self.moves.clear();
+        self.ply_from_root = None;
+    }
+
     pub fn mirror(&mut self) {
         for (uci, score) in &mut self.moves {
             *uci = uci.to_mirrored();
@@ -74,14 +79,18 @@ impl ScoredMoves {
 
     pub fn read_cdb<B: Buf>(buf: &mut B) -> ScoredMoves {
         let mut res = ScoredMoves::with_capacity(buf.remaining() / 4);
+        res.extend_from_cdb(buf);
+        res
+    }
 
+    pub fn extend_from_cdb<B: Buf>(&mut self, buf: &mut B) {
         while buf.has_remaining() {
             let dst = usize::from(buf.get_u8());
             let src = usize::from(buf.get_u8());
             let score = buf.get_i16_le();
 
             if src == 0 && dst == 0 {
-                res.ply_from_root = Some(u32::try_from(score).unwrap());
+                self.ply_from_root = Some(u32::try_from(score).unwrap());
                 continue;
             }
 
@@ -116,9 +125,7 @@ impl ScoredMoves {
                 }
             };
 
-            res.moves.push((uci, score));
+            self.moves.push((uci, score));
         }
-
-        res
     }
 }
