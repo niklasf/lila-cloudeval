@@ -1,6 +1,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use cdbdirect::cdb_fen::cdb_fen;
+use cdbdirect::cdb_fen::push_cdb_fen;
+use cdbdirect::cdb_fen::Nibbles;
 use shakmaty::fen::Fen;
 use std::error::Error;
 use std::fs::File;
@@ -19,11 +20,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let read_options = ReadOptions::default();
 
+    let mut bin_fen = Nibbles::new();
+    let mut bin_fen_bw = Nibbles::new();
+
     for line in BufReader::new(File::open("/root/lila-cloudeval-bench/fens.txt")?).lines() {
         let mut setup = line?.parse::<Fen>()?.into_setup();
-        let bin_fen = cdb_fen(&setup);
+
+        bin_fen.clear();
+        push_cdb_fen(&mut bin_fen, &setup);
+
         setup.mirror();
-        let bin_fen_bw = cdb_fen(&setup);
+        bin_fen_bw.clear();
+        push_cdb_fen(&mut bin_fen_bw, &setup);
+
         let natural_order = bin_fen.as_bytes() < bin_fen_bw.as_bytes();
 
         let value = db.get_opt(

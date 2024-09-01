@@ -19,6 +19,11 @@ impl Nibbles {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.bytes.clear();
+        self.half = false;
+    }
+
     pub fn push_nibble(&mut self, nibble: u8) {
         debug_assert!(nibble & 0xf == nibble);
 
@@ -48,24 +53,28 @@ impl Nibbles {
     }
 }
 
-fn push_empty(bin_fen: &mut Nibbles, empty: i32) {
+fn push_empty(nibbles: &mut Nibbles, empty: i32) {
     match empty {
-        1 => bin_fen.push_nibble(0x0),
-        2 => bin_fen.push_nibble(0x1),
-        3 => bin_fen.push_nibble(0x2),
-        4 => bin_fen.push_byte(0x80),
-        5 => bin_fen.push_byte(0x81),
-        6 => bin_fen.push_byte(0x82),
-        7 => bin_fen.push_byte(0x83),
-        8 => bin_fen.push_byte(0x84),
+        1 => nibbles.push_nibble(0x0),
+        2 => nibbles.push_nibble(0x1),
+        3 => nibbles.push_nibble(0x2),
+        4 => nibbles.push_byte(0x80),
+        5 => nibbles.push_byte(0x81),
+        6 => nibbles.push_byte(0x82),
+        7 => nibbles.push_byte(0x83),
+        8 => nibbles.push_byte(0x84),
         _ => {}
     }
 }
 
 pub fn cdb_fen(setup: &Setup) -> Nibbles {
-    let mut bin_fen = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
+    let mut nibbles = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
+    push_cdb_fen(&mut nibbles, setup);
+    nibbles
+}
 
-    bin_fen.push_byte(b'h');
+pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
+    nibbles.push_byte(b'h');
 
     // Board
     for rank in Rank::ALL.into_iter().rev() {
@@ -73,9 +82,9 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
         for file in File::ALL {
             let square = Square::from_coords(file, rank);
             if let Some(piece) = setup.board.piece_at(square) {
-                push_empty(&mut bin_fen, mem::take(&mut empty));
+                push_empty(nibbles, mem::take(&mut empty));
 
-                bin_fen.push_nibble(match piece {
+                nibbles.push_nibble(match piece {
                     Piece {
                         color: Color::Black,
                         role: Role::Pawn,
@@ -130,11 +139,11 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
             }
         }
 
-        push_empty(&mut bin_fen, empty);
+        push_empty(nibbles, empty);
     }
 
     // Turn
-    bin_fen.push_nibble(setup.turn.fold_wb(0x0, 0x1));
+    nibbles.push_nibble(setup.turn.fold_wb(0x0, 0x1));
 
     // Castling rights
     let mut has_castling_rights = false;
@@ -146,15 +155,15 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
         let candidates = setup.board.by_piece(color.rook()) & color.backrank();
         for rook in (setup.castling_rights & color.backrank()).into_iter().rev() {
             if Some(rook) == candidates.first() && king.map_or(false, |k| rook < k) {
-                bin_fen.push_nibble(color.fold_wb(0xb, 0xd)); // Q/q
+                nibbles.push_nibble(color.fold_wb(0xb, 0xd)); // Q/q
             } else if Some(rook) == candidates.last() && king.map_or(false, |k| k < rook) {
-                bin_fen.push_nibble(color.fold_wb(0xa, 0xc)); // K/k
+                nibbles.push_nibble(color.fold_wb(0xa, 0xc)); // K/k
             } else {
                 match color {
-                    Color::Black => bin_fen.push_nibble(0x1 + u8::from(rook.file())),
+                    Color::Black => nibbles.push_nibble(0x1 + u8::from(rook.file())),
                     Color::White => {
-                        bin_fen.push_nibble(0xe);
-                        bin_fen.push_nibble(0x1 + u8::from(rook.file()));
+                        nibbles.push_nibble(0xe);
+                        nibbles.push_nibble(0x1 + u8::from(rook.file()));
                     }
                 }
             }
@@ -162,17 +171,15 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
         }
     }
     if !has_castling_rights {
-        bin_fen.push_nibble(0x0);
+        nibbles.push_nibble(0x0);
     }
 
     // Space
-    bin_fen.push_nibble(0x9);
+    nibbles.push_nibble(0x9);
 
     // Ep square
     if let Some(ep_square) = setup.ep_square {
-        bin_fen.push_nibble(0x1 + u8::from(ep_square.file()));
-        bin_fen.push_nibble(0x1 + u8::from(ep_square.rank()));
+        nibbles.push_nibble(0x1 + u8::from(ep_square.file()));
+        nibbles.push_nibble(0x1 + u8::from(ep_square.rank()));
     }
-
-    bin_fen
 }
