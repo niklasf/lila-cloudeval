@@ -30,12 +30,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let found = AtomicU64::new(0);
     let not_found = AtomicU64::new(0);
 
-    let read_options = ReadOptions::default();
+    let read_options = &ReadOptions::default();
 
     rayon::scope(|s| {
-        let (tx, rx) = crossbeam_channel::bounded::<String>(1000);
+        let (tx, rx) = crossbeam_channel::bounded::<String>(10_000);
 
-        {
+        for _ in 0..48 {
+            let db = &db;
             let found = &found;
             let not_found = &not_found;
             let rx = rx.clone();
@@ -82,7 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    println!("{:.1?} elpased", started_at.elapsed());
+    println!("{:.3?} elpased", started_at.elapsed());
     println!("{} found", found.load(Ordering::Relaxed));
     println!("{} missing", not_found.load(Ordering::Relaxed));
 
