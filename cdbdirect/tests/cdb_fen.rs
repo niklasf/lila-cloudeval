@@ -2,7 +2,7 @@ use std::mem;
 
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
-use shakmaty::{fen::Fen, Color, File, Piece, Rank, Role, Setup, Square};
+use shakmaty::{fen::Fen, CastlingMode, Chess, Color, File, Piece, Rank, Role, Setup, Square};
 
 fn push_empty(nibbles: &mut Vec<u8>, empty: i32) {
     match empty {
@@ -174,9 +174,18 @@ struct Record {
 
 #[test]
 fn test_cdb_fen() {
-    let mut reader = csv::Reader::from_path("tests/cdb_fen.csv").expect("reader");
+    let mut reader = csv::Reader::from_path("tests/cdb_fen_all.csv").expect("reader");
     for (i, record) in reader.deserialize().enumerate() {
         let record: Record = record.expect("record");
+
+        if record
+            .fen
+            .clone()
+            .into_position::<Chess>(CastlingMode::Chess960)
+            .is_err()
+        {
+            continue;
+        }
 
         assert_eq!(
             hex_fen(record.fen.as_setup()),
