@@ -1,4 +1,5 @@
 use std::{
+    error::Error as StdError,
     ffi::{c_char, c_void, CStr},
     fmt, ptr,
 };
@@ -26,6 +27,8 @@ impl fmt::Display for Error {
         self.as_cstr().to_bytes().escape_ascii().fmt(f)
     }
 }
+
+impl StdError for Error {}
 
 impl Error {
     pub fn new() -> Error {
