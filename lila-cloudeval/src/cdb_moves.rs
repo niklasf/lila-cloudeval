@@ -74,9 +74,8 @@ impl ScoredMoves {
     }
 
     pub fn mirror(&mut self) {
-        for (uci, score) in &mut self.moves {
+        for (uci, _score) in &mut self.moves {
             *uci = uci.to_mirrored();
-            *score = -*score;
         }
     }
 
