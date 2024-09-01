@@ -12,6 +12,13 @@ impl Nibbles {
         Nibbles::default()
     }
 
+    pub fn with_capacity(nibbles: usize) -> Nibbles {
+        Nibbles {
+            bytes: Vec::with_capacity((nibbles + 1) / 2),
+            half: false,
+        }
+    }
+
     pub fn push_nibble(&mut self, nibble: u8) {
         if self.half {
             *self.bytes.last_mut().expect("non empty") |= nibble & 0xf;
@@ -60,7 +67,7 @@ fn push_empty(bin_fen: &mut Nibbles, empty: i32) {
 }
 
 pub fn cdb_fen(setup: &Setup) -> Nibbles {
-    let mut bin_fen = Nibbles::new();
+    let mut bin_fen = Nibbles::with_capacity(10 + 1 + 1 + 1);
 
     // Board
     for rank in Rank::ALL.into_iter().rev() {
