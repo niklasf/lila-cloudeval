@@ -1,3 +1,5 @@
+use std::cmp::Reverse;
+
 use bytes::Buf;
 use shakmaty::{uci::UciMove, File, Rank, Role, Square};
 use File::*;
@@ -66,6 +68,10 @@ impl ScoredMoves {
             *uci = uci.to_mirrored();
             *score = -*score;
         }
+    }
+
+    pub fn sort_by_score(&mut self) {
+        self.moves.sort_by_key(|&(_, score)| Reverse(score));
     }
 
     pub fn read_cdb<B: Buf>(buf: &mut B) -> ScoredMoves {

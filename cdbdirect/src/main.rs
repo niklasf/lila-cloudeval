@@ -82,6 +82,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                             scored_moves.mirror();
                         }
 
+                        scored_moves.sort_by_score();
+
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);
                         if scored_moves.ply_from_root().is_some() {
                             found_ply_from_root.fetch_add(1, Ordering::Relaxed);
