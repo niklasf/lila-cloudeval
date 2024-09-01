@@ -30,8 +30,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let found = AtomicU64::new(0);
     let not_found = AtomicU64::new(0);
 
-    let read_options = &ReadOptions::default();
-
     rayon::scope(|s| {
         let (tx, rx) = crossbeam_channel::bounded::<String>(10_000);
 
@@ -41,10 +39,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             let not_found = &not_found;
             let rx = rx.clone();
             s.spawn(move |_| {
-                while let Ok(line) = rx.recv() {
-                    let mut bin_fen = Nibbles::new();
-                    let mut bin_fen_bw = Nibbles::new();
+                let read_options = ReadOptions::default();
 
+                let mut bin_fen = Nibbles::new();
+                let mut bin_fen_bw = Nibbles::new();
+
+                while let Ok(line) = rx.recv() {
                     let mut setup = line.parse::<Fen>().unwrap().into_setup();
 
                     bin_fen.clear();
