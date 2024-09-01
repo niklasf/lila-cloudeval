@@ -22,7 +22,7 @@ impl Options {
         }
     }
 
-    pub fn increase_parallelism(&mut self, total_threads: usize) {
+    pub fn increase_parallelism(&mut self, total_threads: usize) -> &mut Options {
         assert!(total_threads >= 1);
         unsafe {
             rocksdb_options_increase_parallelism(
@@ -30,6 +30,7 @@ impl Options {
                 c_int::try_from(total_threads).unwrap(),
             );
         };
+        self
     }
 
     pub fn as_ptr(&self) -> *const rocksdb_options_t {

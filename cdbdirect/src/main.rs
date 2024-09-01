@@ -11,11 +11,11 @@ use shakmaty::fen::Fen;
 use terarkdb::{Db, LogFile, Options, ReadOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut options = Options::new();
-    options.increase_parallelism(16);
-
-    let db =
-        Db::open_for_readonly(&options, c"/mnt/ssd/chess-20240814/data", LogFile::Ignore).unwrap();
+    let db = Db::open_for_readonly(
+        Options::default().increase_parallelism(16),
+        c"/mnt/ssd/chess-20240814/data",
+        LogFile::Ignore,
+    )?;
 
     let mut found = 0;
     let mut not_found = 0;
