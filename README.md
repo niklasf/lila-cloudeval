@@ -31,8 +31,6 @@ git submodule update --init
 cargo run --release --bin cdbdirect -- --db-path /mnt/ssd/chess-20240814/data caissa_sorted_100000.epd
 ```
 
-Some paths are still hardcoded. Sorry.
-
 Acknowledgements
 ----------------
 
