@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 
-use std::num::NonZeroUsize;
 use std::{
     error::Error,
     fs::File,
     hint::black_box,
     io::{BufRead as _, BufReader},
+    num::NonZeroUsize,
     path::PathBuf,
     sync::{
         atomic::{AtomicU64, Ordering},
@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 while let Ok(line) = rx.recv() {
                     let setup = line.parse::<Fen>().unwrap().into_setup();
 
-                    if let Some(scored_moves) = database.get_blocking(setup).unwrap() {
+                    if let Some(mut scored_moves) = database.get_blocking(setup).unwrap() {
                         found.fetch_add(1, Ordering::Relaxed);
 
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);
@@ -67,8 +67,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             found_ply_from_root.fetch_add(1, Ordering::Relaxed);
                         }
 
-                        // println!("{line}: {scored_moves:?}");
+                        scored_moves.sort_by_score(scored_moves.len());
                         black_box(&scored_moves);
+                        // println!("{line}: {scored_moves:?}");
                     } else {
                         not_found.lock().unwrap().push(line);
                     }

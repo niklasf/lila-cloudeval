@@ -1,4 +1,7 @@
+use std::cmp::min;
+
 use bytes::Buf;
+use partial_sort::partial_sort;
 use shakmaty::{uci::UciMove, File, Rank, Role, Square};
 use File::*;
 use Rank::*;
@@ -77,8 +80,9 @@ impl ScoredMoves {
         }
     }
 
-    pub fn sort_by_score(&mut self) {
-        self.moves.sort_by_key(|&(_, score)| score);
+    pub fn sort_by_score(&mut self, pvs: usize) {
+        let pvs = min(self.moves.len(), pvs);
+        partial_sort(&mut self.moves, pvs, |&(_, left), &(_, right)| left < right);
     }
 
     pub fn read_cdb<B: Buf>(buf: &mut B) -> ScoredMoves {

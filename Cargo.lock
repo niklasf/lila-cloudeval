@@ -494,6 +494,7 @@ dependencies = [
  "crossbeam-channel",
  "csv",
  "hex",
+ "partial_sort",
  "rayon",
  "serde",
  "serde_with",
@@ -555,6 +556,12 @@ name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
+
+[[package]]
+name = "partial_sort"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7924d1d0ad836f665c9065e26d016c673ece3993f30d340068b16f282afc1156"
 
 [[package]]
 name = "powerfmt"

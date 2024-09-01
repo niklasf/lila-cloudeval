@@ -1,11 +1,10 @@
-use shakmaty::uci::UciMove;
-use shakmaty::{Chess, Position};
-use std::collections::HashSet;
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
-use shakmaty::zobrist::{Zobrist64, ZobristHash};
-use shakmaty::EnPassantMode;
-use shakmaty::Setup;
+use shakmaty::{
+    uci::UciMove,
+    zobrist::{Zobrist64, ZobristHash},
+    Chess, EnPassantMode, Position, Setup,
+};
 use terarkdb::{BlockBasedTableOptions, Cache, Db, Error as DbError, LogFile, Options};
 
 use crate::{cdb_fen::cdb_fen, cdb_moves::ScoredMoves};
@@ -69,8 +68,6 @@ impl Database {
             scored_moves.mirror();
         }
 
-        scored_moves.sort_by_score();
-
         Ok(Some(scored_moves))
     }
 
@@ -92,11 +89,13 @@ impl Database {
                 break;
             }
 
-            let Some(scored_moves) =
+            let Some(mut scored_moves) =
                 self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?
             else {
                 break;
             };
+
+            scored_moves.sort_by_score(1);
 
             let Some((top_move, _)) = scored_moves.moves().first() else {
                 break;
