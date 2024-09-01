@@ -8,11 +8,16 @@ use std::{
 
 use cdbdirect::cdb_fen::{push_cdb_fen, Nibbles};
 use shakmaty::fen::Fen;
-use terarkdb::{Db, LogFile, Options, ReadOptions};
+use terarkdb::{BlockBasedTableOptions, Cache, Db, LogFile, Options, ReadOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let db = Db::open_for_readonly(
-        Options::default().increase_parallelism(16),
+        Options::default()
+            .increase_parallelism(16)
+            .set_block_based_table_options(
+                &BlockBasedTableOptions::default()
+                    .set_block_cache(&Cache::new_lru(100 * 1024 * 1024)),
+            ),
         "/mnt/ssd/chess-20240814/data",
         LogFile::Ignore,
     )?;

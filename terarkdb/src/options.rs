@@ -2,8 +2,10 @@ use std::{ffi::c_int, ptr::NonNull};
 
 use terarkdb_sys::{
     rocksdb_options_create, rocksdb_options_destroy, rocksdb_options_increase_parallelism,
-    rocksdb_options_t,
+    rocksdb_options_set_block_based_table_factory, rocksdb_options_t,
 };
+
+use crate::BlockBasedTableOptions;
 
 pub struct Options {
     inner: NonNull<rocksdb_options_t>,
@@ -22,7 +24,7 @@ impl Options {
         }
     }
 
-    pub fn increase_parallelism(&mut self, total_threads: usize) -> &mut Options {
+    pub fn increase_parallelism(&mut self, total_threads: usize) -> &mut Self {
         assert!(total_threads >= 1);
         unsafe {
             rocksdb_options_increase_parallelism(
@@ -30,6 +32,19 @@ impl Options {
                 c_int::try_from(total_threads).unwrap(),
             );
         };
+        self
+    }
+
+    pub fn set_block_based_table_options(
+        &mut self,
+        table_options: &BlockBasedTableOptions,
+    ) -> &mut Self {
+        unsafe {
+            rocksdb_options_set_block_based_table_factory(
+                self.as_mut_ptr(),
+                table_options.as_implied_const_ptr(),
+            );
+        }
         self
     }
 

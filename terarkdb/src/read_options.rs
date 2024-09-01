@@ -25,7 +25,7 @@ impl ReadOptions {
         self.inner.as_ptr()
     }
 
-    pub(crate) fn as_mut_ptr(&self) -> *mut rocksdb_readoptions_t {
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut rocksdb_readoptions_t {
         self.inner.as_ptr()
     }
 }
