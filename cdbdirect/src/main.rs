@@ -77,7 +77,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if let Some(value) = value {
                         found.fetch_add(1, Ordering::Relaxed);
 
-                        let scored_moves = ScoredMoves::read_cdb(&mut &value[..]);
+                        let mut scored_moves = ScoredMoves::read_cdb(&mut &value[..]);
+                        if !natural_order {
+                            scored_moves.mirror();
+                        }
+
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);
                         if scored_moves.ply_from_root().is_some() {
                             found_ply_from_root.fetch_add(1, Ordering::Relaxed);

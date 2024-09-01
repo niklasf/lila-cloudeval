@@ -61,8 +61,15 @@ impl ScoredMoves {
         self.ply_from_root
     }
 
+    pub fn mirror(&mut self) {
+        for (uci, score) in &mut self.moves {
+            *uci = uci.to_mirrored();
+            *score = -*score;
+        }
+    }
+
     pub fn read_cdb<B: Buf>(buf: &mut B) -> ScoredMoves {
-        let mut res = ScoredMoves::with_capacity(buf.remaining());
+        let mut res = ScoredMoves::with_capacity(buf.remaining() / 4);
 
         while buf.has_remaining() {
             let dst = usize::from(buf.get_u8());
