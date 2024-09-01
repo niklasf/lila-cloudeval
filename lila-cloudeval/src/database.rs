@@ -1,17 +1,15 @@
-use shakmaty::Setup;
 use std::path::PathBuf;
-use terarkdb::BlockBasedTableOptions;
-use terarkdb::Cache;
-use terarkdb::Db;
-use terarkdb::Error as DbError;
-use terarkdb::LogFile;
-use terarkdb::Options;
 
-use crate::cdb_fen::cdb_fen;
-use crate::cdb_moves::ScoredMoves;
+use shakmaty::Setup;
+use terarkdb::{BlockBasedTableOptions, Cache, Db, Error as DbError, LogFile, Options};
 
+use crate::{cdb_fen::cdb_fen, cdb_moves::ScoredMoves};
+
+#[derive(Debug, clap::Parser)]
 pub struct DatabaseOpt {
+    #[arg(long)]
     db_path: PathBuf,
+    #[arg(long, default_value = "104857600")] // 100 MiB
     db_block_cache_bytes: usize,
 }
 
@@ -28,6 +26,7 @@ impl DatabaseOpt {
     }
 }
 
+#[derive(Debug)]
 pub struct Database {
     inner: Db,
 }
@@ -39,7 +38,7 @@ impl Database {
         })
     }
 
-    pub fn open_for_readonly_blocking(opt: &DatabaseOpt) -> Result<Database, DbError> {
+    pub fn open_read_only_blocking(opt: &DatabaseOpt) -> Result<Database, DbError> {
         Ok(Database {
             inner: Db::open_read_only(&opt.to_options(), &opt.db_path, LogFile::Ignore)?,
         })
@@ -51,8 +50,8 @@ impl Database {
         let natural_order = bin_fen.as_bytes() < bin_fen_mirrored.as_bytes();
 
         let maybe_value = self.inner.get(match natural_order {
-            false => bin_fen.as_bytes(),
-            true => bin_fen_mirrored.as_bytes(),
+            true => bin_fen.as_bytes(),
+            false => bin_fen_mirrored.as_bytes(),
         })?;
 
         let Some(value) = maybe_value else {

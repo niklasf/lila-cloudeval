@@ -28,7 +28,7 @@ Run a test roughly comparable to `cdbdirect_threaded` from https://github.com/vo
 ```sh
 git submodule update --init
 (cd terarkdb-sys/terarkdb && ./build.sh)
-cargo run --release --bin cdbdirect
+cargo run --release --bin cdbdirect -- --db-path /mnt/ssd/chess-20240814/data caissa_sorted_100000.epd
 ```
 
 Some paths are still hardcoded. Sorry.

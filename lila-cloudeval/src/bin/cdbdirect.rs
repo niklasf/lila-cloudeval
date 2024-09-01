@@ -1,10 +1,12 @@
 #![forbid(unsafe_code)]
 
+use std::num::NonZeroUsize;
 use std::{
     error::Error,
     fs::File,
     hint::black_box,
     io::{BufRead as _, BufReader},
+    path::PathBuf,
     sync::{
         atomic::{AtomicU64, Ordering},
         Mutex,
@@ -13,37 +15,40 @@ use std::{
     time::Instant,
 };
 
-use lila_cloudeval::{
-    cdb_fen::{push_cdb_fen, Nibbles},
-    cdb_moves::ScoredMoves,
-};
+use clap::Parser as _;
+use lila_cloudeval::database::{Database, DatabaseOpt};
 use shakmaty::fen::Fen;
-use terarkdb::{BlockBasedTableOptions, Cache, Db, LogFile, Options, ReadOptions};
+
+#[derive(Debug, clap::Parser)]
+struct Opt {
+    #[clap(flatten)]
+    db: DatabaseOpt,
+    #[clap(long)]
+    threads: Option<NonZeroUsize>,
+    fens: Vec<PathBuf>,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let db = Db::open_read_only(
-        Options::default()
-            .increase_parallelism(16)
-            .set_block_based_table_options(
-                &BlockBasedTableOptions::default()
-                    .set_block_cache(&Cache::new_lru(2 * 1024 * 1024 * 1024)),
-            ),
-        "/mnt/ssd/chess-20240814/data",
-        LogFile::Ignore,
-    )?;
+    let opt = Opt::parse();
 
-    let started_at = Instant::now();
+    let database = Database::open_read_only_blocking(&opt.db)?;
+
+    let threads = opt
+        .threads
+        .unwrap_or_else(|| thread::available_parallelism().unwrap());
 
     let found = AtomicU64::new(0);
     let not_found = Mutex::new(Vec::new());
     let total_moves = AtomicU64::new(0);
     let found_ply_from_root = AtomicU64::new(0);
 
+    let started_at = Instant::now();
+
     rayon::scope(|s| {
         let (tx, rx) = crossbeam_channel::bounded::<String>(1_000_000);
 
-        for _ in 0..usize::from(thread::available_parallelism().unwrap()) {
-            let db = &db;
+        for _ in 0..usize::from(threads) {
+            let database = &database;
             let found = &found;
             let not_found = &not_found;
             let total_moves = &total_moves;
@@ -51,45 +56,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             let rx = rx.clone();
 
             s.spawn(move |_| {
-                let read_options = ReadOptions::default();
-
-                let mut bin_fen = Nibbles::new();
-                let mut bin_fen_bw = Nibbles::new();
-                let mut scored_moves = ScoredMoves::new();
-
                 while let Ok(line) = rx.recv() {
-                    let mut setup = line.parse::<Fen>().unwrap().into_setup();
+                    let setup = line.parse::<Fen>().unwrap().into_setup();
 
-                    bin_fen.clear();
-                    push_cdb_fen(&mut bin_fen, &setup);
-
-                    setup.mirror();
-                    bin_fen_bw.clear();
-                    push_cdb_fen(&mut bin_fen_bw, &setup);
-
-                    let natural_order = bin_fen.as_bytes() < bin_fen_bw.as_bytes();
-
-                    let value = db
-                        .get_opt(
-                            if natural_order {
-                                bin_fen.as_bytes()
-                            } else {
-                                bin_fen_bw.as_bytes()
-                            },
-                            &read_options,
-                        )
-                        .unwrap();
-
-                    if let Some(value) = value {
+                    if let Some(scored_moves) = database.get_blocking(&setup).unwrap() {
                         found.fetch_add(1, Ordering::Relaxed);
-
-                        scored_moves.clear();
-                        scored_moves.extend_from_cdb(&mut &value[..]);
-                        if !natural_order {
-                            scored_moves.mirror();
-                        }
-
-                        scored_moves.sort_by_score();
 
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);
                         if scored_moves.ply_from_root().is_some() {
@@ -97,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
 
                         // println!("{line}: {scored_moves:?}");
-                        black_box(&mut scored_moves);
+                        black_box(&scored_moves);
                     } else {
                         not_found.lock().unwrap().push(line);
                     }
@@ -105,10 +76,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             });
         }
 
-        for line in
-            BufReader::new(File::open("/root/lila-cloudeval-bench/fens.txt").unwrap()).lines()
-        {
-            tx.send(line.unwrap()).unwrap();
+        for path in opt.fens {
+            for line in BufReader::new(File::open(path).unwrap()).lines() {
+                tx.send(line.unwrap()).unwrap();
+            }
         }
     });
 
