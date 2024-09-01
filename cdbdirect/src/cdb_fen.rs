@@ -1,6 +1,6 @@
 use shakmaty::{Color, File, Piece, Rank, Role, Setup};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Nibbles {
     bytes: Vec<u8>,
     half: bool,

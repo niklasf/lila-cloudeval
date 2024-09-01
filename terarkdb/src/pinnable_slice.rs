@@ -6,6 +6,7 @@ use terarkdb_sys::{
 
 use crate::db::Db;
 
+#[derive(Debug)]
 pub struct PinnableSlice<'db> {
     inner: NonNull<rocksdb_pinnableslice_t>,
     db: PhantomData<&'db Db>,

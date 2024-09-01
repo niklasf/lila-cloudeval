@@ -2,6 +2,7 @@ use std::ptr::NonNull;
 
 use terarkdb_sys::{rocksdb_cache_create_lru, rocksdb_cache_destroy, rocksdb_cache_t};
 
+#[derive(Debug)]
 pub struct Cache {
     inner: NonNull<rocksdb_cache_t>,
 }

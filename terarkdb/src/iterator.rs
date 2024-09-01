@@ -8,6 +8,7 @@ use terarkdb_sys::{
 
 use crate::{db::Db, error::Error, read_options::ReadOptions};
 
+#[derive(Debug)]
 pub struct Iterator<'db, 'options> {
     inner: NonNull<rocksdb_iterator_t>,
     db: PhantomData<&'db Db>,

@@ -91,6 +91,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                         if scored_moves.ply_from_root().is_some() {
                             found_ply_from_root.fetch_add(1, Ordering::Relaxed);
                         }
+
+                        // println!("{line}: {scored_moves:?}");
                     } else {
                         not_found.lock().unwrap().push(line);
                     }

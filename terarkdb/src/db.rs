@@ -24,6 +24,7 @@ pub enum LogFile {
     ErrorIfExists = 1,
 }
 
+#[derive(Debug)]
 pub struct Db {
     inner: NonNull<rocksdb_t>,
 }

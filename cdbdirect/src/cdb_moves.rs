@@ -1,5 +1,3 @@
-use std::cmp::Reverse;
-
 use bytes::Buf;
 use shakmaty::{uci::UciMove, File, Rank, Role, Square};
 use File::*;
@@ -33,7 +31,7 @@ const DEC_RANK: [Option<Rank>; 90] = [
     None,          None,          None,          None,          None,          None,          None,          None,          None,
 ];
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ScoredMoves {
     moves: Vec<(UciMove, i16)>,
     ply_from_root: Option<u32>,
@@ -71,7 +69,7 @@ impl ScoredMoves {
     }
 
     pub fn sort_by_score(&mut self) {
-        self.moves.sort_by_key(|&(_, score)| Reverse(score));
+        self.moves.sort_by_key(|&(_, score)| score);
     }
 
     pub fn read_cdb<B: Buf>(buf: &mut B) -> ScoredMoves {
@@ -80,7 +78,7 @@ impl ScoredMoves {
         while buf.has_remaining() {
             let dst = usize::from(buf.get_u8());
             let src = usize::from(buf.get_u8());
-            let score = buf.get_i16();
+            let score = buf.get_i16_le();
 
             if src == 0 && dst == 0 {
                 res.ply_from_root = Some(u32::try_from(score).unwrap());

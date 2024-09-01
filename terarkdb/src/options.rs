@@ -7,6 +7,7 @@ use terarkdb_sys::{
 
 use crate::BlockBasedTableOptions;
 
+#[derive(Debug)]
 pub struct Options {
     inner: NonNull<rocksdb_options_t>,
 }

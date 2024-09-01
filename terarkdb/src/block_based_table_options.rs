@@ -7,6 +7,7 @@ use terarkdb_sys::{
 
 use crate::Cache;
 
+#[derive(Debug)]
 pub struct BlockBasedTableOptions {
     inner: NonNull<rocksdb_block_based_table_options_t>,
 }

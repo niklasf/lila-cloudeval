@@ -4,6 +4,7 @@ use terarkdb_sys::{
     rocksdb_readoptions_create, rocksdb_readoptions_destroy, rocksdb_readoptions_t,
 };
 
+#[derive(Debug)]
 pub struct ReadOptions {
     inner: NonNull<rocksdb_readoptions_t>,
 }
