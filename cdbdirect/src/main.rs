@@ -4,7 +4,10 @@ use std::{
     error::Error,
     fs::File,
     io::{BufRead as _, BufReader},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Mutex,
+    },
     time::Instant,
 };
 
@@ -30,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let started_at = Instant::now();
 
     let found = AtomicU64::new(0);
-    let not_found = AtomicU64::new(0);
+    let not_found = Mutex::new(Vec::new());
     let total_moves = AtomicU64::new(0);
     let found_ply_from_root = AtomicU64::new(0);
 
@@ -89,7 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             found_ply_from_root.fetch_add(1, Ordering::Relaxed);
                         }
                     } else {
-                        not_found.fetch_add(1, Ordering::Relaxed);
+                        not_found.lock().unwrap().push(line);
                     }
                 }
             });
@@ -104,7 +107,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("{:.3?} elpased", started_at.elapsed());
     println!("{} found", found.load(Ordering::Relaxed));
-    println!("{} missing", not_found.load(Ordering::Relaxed));
+    println!("{} missing", not_found.into_inner().unwrap().len());
     println!("{} scored moves", total_moves.load(Ordering::Relaxed));
     println!(
         "{} found with ply from root",
