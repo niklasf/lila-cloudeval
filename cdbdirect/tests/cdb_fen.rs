@@ -159,18 +159,7 @@ fn hex_fen(setup: &Setup) -> String {
 }
 
 fn bw(mut setup: Setup) -> Setup {
-    setup.board.flip_vertical();
-    setup.board.swap_colors();
-    setup.promoted = setup.promoted.flip_vertical();
-    setup.turn = !setup.turn;
-    if let Some(pockets) = &mut setup.pockets {
-        pockets.swap();
-    }
-    setup.castling_rights = setup.castling_rights.flip_vertical();
-    setup.ep_square = setup.ep_square.map(Square::flip_vertical);
-    if let Some(remaining_checks) = &mut setup.remaining_checks {
-        remaining_checks.swap();
-    }
+    setup.mirror();
     setup
 }
 
