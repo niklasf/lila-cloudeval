@@ -23,8 +23,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut bin_fen = Nibbles::new();
     let mut bin_fen_bw = Nibbles::new();
 
-    for line in BufReader::new(File::open("/root/lila-cloudeval-bench/fens.txt")?).lines() {
-        let mut setup = line?.parse::<Fen>()?.into_setup();
+    let mut reader = BufReader::new(File::open("/root/lila-cloudeval-bench/fens.txt")?);
+    let mut line = Vec::new();
+    while reader.read_until(b'\n', &mut line)? != 0 {
+        if line[line.len() - 1] == b'\n' {
+            line.pop();
+        }
+
+        let mut setup = Fen::from_ascii(&line)?.into_setup();
 
         bin_fen.clear();
         push_cdb_fen(&mut bin_fen, &setup);
@@ -48,6 +54,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             Some(_) => found += 1,
             None => not_found += 1,
         }
+
+        line.clear();
     }
 
     println!("{found} found");
