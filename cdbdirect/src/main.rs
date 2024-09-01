@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .increase_parallelism(16)
             .set_block_based_table_options(
                 &BlockBasedTableOptions::default()
-                    .set_block_cache(&Cache::new_lru(100 * 1024 * 1024)),
+                    .set_block_cache(&Cache::new_lru(2 * 1024 * 1024 * 1024)),
             ),
         "/mnt/ssd/chess-20240814/data",
         LogFile::Ignore,
