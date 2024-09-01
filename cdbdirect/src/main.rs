@@ -10,7 +10,7 @@ use std::{
 
 use cdbdirect::{
     cdb_fen::{push_cdb_fen, Nibbles},
-    cdb_moves::read_cdb_moves,
+    cdb_moves::ScoredMoves,
 };
 use shakmaty::fen::Fen;
 use terarkdb::{BlockBasedTableOptions, Cache, Db, LogFile, Options, ReadOptions};
@@ -75,10 +75,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .unwrap();
 
                     if let Some(value) = value {
-                        let (scored_moves, ply_from_root) = read_cdb_moves(&mut &value[..]);
                         found.fetch_add(1, Ordering::Relaxed);
+
+                        let scored_moves = ScoredMoves::read_cdb(&mut &value[..]);
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);
-                        if ply_from_root.is_some() {
+                        if scored_moves.ply_from_root().is_some() {
                             found_ply_from_root.fetch_add(1, Ordering::Relaxed);
                         }
                     } else {
