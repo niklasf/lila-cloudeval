@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    println!("{:.3?} elpased", started_at.elapsed());
+    println!("{:.3?} elapased", started_at.elapsed());
     println!("{} found", found.load(Ordering::Relaxed));
     println!("{} missing", not_found.into_inner().unwrap().len());
     println!("{} scored moves", total_moves.load(Ordering::Relaxed));
