@@ -26,11 +26,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         let bin_fen_bw = cdb_fen(&setup);
         let natural_order = bin_fen.as_bytes() < bin_fen_bw.as_bytes();
 
-        let value = db.get(if natural_order {
-            bin_fen.as_bytes()
-        } else {
-            bin_fen_bw.as_bytes()
-        })?;
+        let value = db.get_opt(
+            if natural_order {
+                bin_fen.as_bytes()
+            } else {
+                bin_fen_bw.as_bytes()
+            },
+            &read_options,
+        )?;
 
         match value {
             Some(_) => found += 1,
