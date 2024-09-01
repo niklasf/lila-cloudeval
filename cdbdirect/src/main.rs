@@ -11,10 +11,7 @@ use std::{
     time::Instant,
 };
 
-use cdbdirect::{
-    cdb_fen::{push_cdb_fen, Nibbles},
-    cdb_moves::ScoredMoves,
-};
+use cdbdirect::{cdb_fen::cdb_fen, cdb_moves::ScoredMoves};
 use shakmaty::fen::Fen;
 use terarkdb::{BlockBasedTableOptions, Cache, Db, LogFile, Options, ReadOptions};
 
@@ -51,20 +48,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             s.spawn(move |_| {
                 let read_options = ReadOptions::default();
 
-                let mut bin_fen = Nibbles::new();
-                let mut bin_fen_bw = Nibbles::new();
-                let mut scored_moves = ScoredMoves::new();
-
                 while let Ok(line) = rx.recv() {
-                    let mut setup = line.parse::<Fen>().unwrap().into_setup();
-
-                    bin_fen.clear();
-                    push_cdb_fen(&mut bin_fen, &setup);
-
-                    setup.mirror();
-                    bin_fen_bw.clear();
-                    push_cdb_fen(&mut bin_fen_bw, &setup);
-
+                    let setup = line.parse::<Fen>().unwrap().into_setup();
+                    let bin_fen = cdb_fen(&setup);
+                    let bin_fen_bw = cdb_fen(&setup.into_mirrored());
                     let natural_order = bin_fen.as_bytes() < bin_fen_bw.as_bytes();
 
                     let value = db
@@ -81,8 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if let Some(value) = value {
                         found.fetch_add(1, Ordering::Relaxed);
 
-                        scored_moves.clear();
-                        scored_moves.extend_from_cdb(&mut &value[..]);
+                        let mut scored_moves = ScoredMoves::read_cdb(&mut &value[..]);
                         if !natural_order {
                             scored_moves.mirror();
                         }
