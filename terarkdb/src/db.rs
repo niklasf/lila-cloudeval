@@ -1,5 +1,6 @@
 use std::{
-    ffi::{c_char, c_uchar, CStr},
+    ffi::{c_char, c_uchar, CString},
+    path::Path,
     ptr::NonNull,
 };
 
@@ -10,6 +11,11 @@ use terarkdb_sys::{
 use crate::{
     error::Error, options::Options, pinnable_slice::PinnableSlice, read_options::ReadOptions,
 };
+
+fn cpath(path: &Path) -> CString {
+    use std::os::unix::ffi::OsStrExt as _;
+    CString::new(path.as_os_str().as_bytes()).expect("no NUL in unix path")
+}
 
 #[derive(Default)]
 pub enum LogFile {
@@ -23,25 +29,31 @@ pub struct Db {
 }
 
 impl Db {
-    pub fn open(options: &Options, name: &CStr) -> Result<Db, Error> {
+    pub fn open<P: AsRef<Path>>(options: &Options, path: P) -> Result<Db, Error> {
         let mut error = Error::new();
-        let maybe_db = unsafe { rocksdb_open(options.as_ptr(), name.as_ptr(), error.as_mut_ptr()) };
+        let maybe_db = unsafe {
+            rocksdb_open(
+                options.as_ptr(),
+                cpath(path.as_ref()).as_ptr(),
+                error.as_mut_ptr(),
+            )
+        };
 
         error.or_else(|| Db {
             inner: NonNull::new(maybe_db).unwrap(),
         })
     }
 
-    pub fn open_for_readonly(
+    pub fn open_for_readonly<P: AsRef<Path>>(
         options: &Options,
-        name: &CStr,
+        path: P,
         log_file: LogFile,
     ) -> Result<Db, Error> {
         let mut error = Error::new();
         let maybe_db = unsafe {
             rocksdb_open_for_read_only(
                 options.as_ptr(),
-                name.as_ptr(),
+                cpath(path.as_ref()).as_ptr(),
                 log_file as c_uchar,
                 error.as_mut_ptr(),
             )

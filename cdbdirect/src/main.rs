@@ -13,7 +13,7 @@ use terarkdb::{Db, LogFile, Options, ReadOptions};
 fn main() -> Result<(), Box<dyn Error>> {
     let db = Db::open_for_readonly(
         Options::default().increase_parallelism(16),
-        c"/mnt/ssd/chess-20240814/data",
+        "/mnt/ssd/chess-20240814/data",
         LogFile::Ignore,
     )?;
 
