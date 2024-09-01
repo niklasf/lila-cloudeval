@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 while let Ok(line) = rx.recv() {
                     let setup = line.parse::<Fen>().unwrap().into_setup();
 
-                    if let Some(scored_moves) = database.get_blocking(&setup).unwrap() {
+                    if let Some(scored_moves) = database.get_blocking(setup).unwrap() {
                         found.fetch_add(1, Ordering::Relaxed);
 
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);

@@ -1,5 +1,10 @@
+use shakmaty::uci::UciMove;
+use shakmaty::{Chess, Position};
+use std::collections::HashSet;
 use std::path::PathBuf;
 
+use shakmaty::zobrist::{Zobrist64, ZobristHash};
+use shakmaty::EnPassantMode;
 use shakmaty::Setup;
 use terarkdb::{BlockBasedTableOptions, Cache, Db, Error as DbError, LogFile, Options};
 
@@ -44,9 +49,9 @@ impl Database {
         })
     }
 
-    pub fn get_blocking(&self, setup: &Setup) -> Result<Option<ScoredMoves>, DbError> {
-        let bin_fen = cdb_fen(setup);
-        let bin_fen_mirrored = cdb_fen(&setup.clone().into_mirrored());
+    pub fn get_blocking(&self, setup: Setup) -> Result<Option<ScoredMoves>, DbError> {
+        let bin_fen = cdb_fen(&setup);
+        let bin_fen_mirrored = cdb_fen(&setup.into_mirrored());
         let natural_order = bin_fen.as_bytes() < bin_fen_mirrored.as_bytes();
 
         let maybe_value = self.inner.get(match natural_order {
@@ -67,5 +72,41 @@ impl Database {
         scored_moves.sort_by_score();
 
         Ok(Some(scored_moves))
+    }
+
+    pub fn get_pv_blocking(
+        &self,
+        mut pos: Chess,
+        max_length: usize,
+    ) -> Result<Vec<UciMove>, DbError> {
+        let mut pv = Vec::new();
+
+        let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();
+
+        loop {
+            if pv.len() >= max_length {
+                break;
+            }
+
+            if !seen_hashes.insert(pos.zobrist_hash(EnPassantMode::Legal)) {
+                break;
+            }
+
+            let Some(scored_moves) =
+                self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?
+            else {
+                break;
+            };
+
+            let Some((top_move, _)) = scored_moves.moves().first() else {
+                break;
+            };
+
+            let m = top_move.to_move(&pos).unwrap();
+            pv.push(UciMove::from_chess960(&m));
+            pos.play_unchecked(&m);
+        }
+
+        Ok(pv)
     }
 }

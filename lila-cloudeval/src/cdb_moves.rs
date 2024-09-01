@@ -61,6 +61,10 @@ impl ScoredMoves {
         self.ply_from_root
     }
 
+    pub fn moves(&self) -> &[(UciMove, i16)] {
+        &self.moves
+    }
+
     pub fn clear(&mut self) {
         self.moves.clear();
         self.ply_from_root = None;
