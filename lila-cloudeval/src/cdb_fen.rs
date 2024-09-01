@@ -175,7 +175,7 @@ pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
         nibbles.push_nibble(0x0);
     }
 
-    // Wasted space
+    // Delimiter
     nibbles.push_nibble(0x9);
 
     // Ep square
