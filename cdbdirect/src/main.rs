@@ -4,6 +4,7 @@ use std::{
     error::Error,
     fs::File,
     io::{BufRead as _, BufReader},
+    time::Instant,
 };
 
 use cdbdirect::cdb_fen::{push_cdb_fen, Nibbles};
@@ -21,6 +22,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "/mnt/ssd/chess-20240814/data",
         LogFile::Ignore,
     )?;
+
+    let started_at = Instant::now();
 
     let mut found = 0;
     let mut not_found = 0;
@@ -65,6 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         line.clear();
     }
 
+    println!("{:.1?} elpased", started_at.elapsed());
     println!("{found} found");
     println!("{not_found} missing");
 
