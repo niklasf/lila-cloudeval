@@ -1,6 +1,4 @@
-use std::mem;
-
-use shakmaty::{Color, File, Piece, Rank, Role, Setup, Square};
+use shakmaty::{Color, File, Piece, Rank, Role, Setup};
 
 #[derive(Default)]
 pub struct Nibbles {
@@ -75,72 +73,71 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
 }
 
 pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
+    // Prefix
     nibbles.push_byte(b'h');
 
     // Board
     for rank in Rank::ALL.into_iter().rev() {
-        let mut empty = 0;
-        for file in File::ALL {
-            let square = Square::from_coords(file, rank);
-            if let Some(piece) = setup.board.piece_at(square) {
-                push_empty(nibbles, mem::take(&mut empty));
+        let mut prev_file = -1;
 
-                nibbles.push_nibble(match piece {
-                    Piece {
-                        color: Color::Black,
-                        role: Role::Pawn,
-                    } => 0x3,
-                    Piece {
-                        color: Color::Black,
-                        role: Role::Knight,
-                    } => 0x4,
-                    Piece {
-                        color: Color::Black,
-                        role: Role::Bishop,
-                    } => 0x5,
-                    Piece {
-                        color: Color::Black,
-                        role: Role::Rook,
-                    } => 0x6,
-                    Piece {
-                        color: Color::Black,
-                        role: Role::Queen,
-                    } => 0x7,
-                    Piece {
-                        color: Color::Black,
-                        role: Role::King,
-                    } => 0x9,
-                    Piece {
-                        color: Color::White,
-                        role: Role::Pawn,
-                    } => 0xa,
-                    Piece {
-                        color: Color::White,
-                        role: Role::Knight,
-                    } => 0xb,
-                    Piece {
-                        color: Color::White,
-                        role: Role::Bishop,
-                    } => 0xc,
-                    Piece {
-                        color: Color::White,
-                        role: Role::Rook,
-                    } => 0xd,
-                    Piece {
-                        color: Color::White,
-                        role: Role::Queen,
-                    } => 0xe,
-                    Piece {
-                        color: Color::White,
-                        role: Role::King,
-                    } => 0xf,
-                });
-            } else {
-                empty += 1;
-            }
+        for square in setup.board.occupied() & rank {
+            push_empty(nibbles, i32::from(square.file()) - prev_file - 1);
+            prev_file = i32::from(square.file());
+
+            let piece = setup.board.piece_at(square).expect("piece");
+            nibbles.push_nibble(match piece {
+                Piece {
+                    color: Color::Black,
+                    role: Role::Pawn,
+                } => 0x3,
+                Piece {
+                    color: Color::Black,
+                    role: Role::Knight,
+                } => 0x4,
+                Piece {
+                    color: Color::Black,
+                    role: Role::Bishop,
+                } => 0x5,
+                Piece {
+                    color: Color::Black,
+                    role: Role::Rook,
+                } => 0x6,
+                Piece {
+                    color: Color::Black,
+                    role: Role::Queen,
+                } => 0x7,
+                Piece {
+                    color: Color::Black,
+                    role: Role::King,
+                } => 0x9,
+                Piece {
+                    color: Color::White,
+                    role: Role::Pawn,
+                } => 0xa,
+                Piece {
+                    color: Color::White,
+                    role: Role::Knight,
+                } => 0xb,
+                Piece {
+                    color: Color::White,
+                    role: Role::Bishop,
+                } => 0xc,
+                Piece {
+                    color: Color::White,
+                    role: Role::Rook,
+                } => 0xd,
+                Piece {
+                    color: Color::White,
+                    role: Role::Queen,
+                } => 0xe,
+                Piece {
+                    color: Color::White,
+                    role: Role::King,
+                } => 0xf,
+            });
         }
 
-        push_empty(nibbles, empty);
+        push_empty(nibbles, i32::from(File::H) - prev_file);
     }
 
     // Turn
@@ -175,7 +172,7 @@ pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
         nibbles.push_nibble(0x0);
     }
 
-    // Space
+    // Wasted space
     nibbles.push_nibble(0x9);
 
     // Ep square
