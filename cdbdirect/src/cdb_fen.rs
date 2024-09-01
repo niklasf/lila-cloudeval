@@ -20,12 +20,23 @@ impl Nibbles {
     }
 
     pub fn push_nibble(&mut self, nibble: u8) {
+        debug_assert!(nibble & 0xf == nibble);
+
         if self.half {
             *self.bytes.last_mut().expect("non empty") |= nibble & 0xf;
         } else {
             self.bytes.push(nibble << 4);
         }
         self.half = !self.half;
+    }
+
+    pub fn push_byte(&mut self, byte: u8) {
+        if self.half {
+            *self.bytes.last_mut().expect("non empty") |= byte >> 4;
+            self.bytes.push(byte << 4);
+        } else {
+            self.bytes.push(byte);
+        }
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -39,35 +50,20 @@ impl Nibbles {
 
 fn push_empty(bin_fen: &mut Nibbles, empty: i32) {
     match empty {
-        1 => bin_fen.push_nibble(0),
-        2 => bin_fen.push_nibble(1),
-        3 => bin_fen.push_nibble(2),
-        4 => {
-            bin_fen.push_nibble(8);
-            bin_fen.push_nibble(0);
-        }
-        5 => {
-            bin_fen.push_nibble(8);
-            bin_fen.push_nibble(1);
-        }
-        6 => {
-            bin_fen.push_nibble(8);
-            bin_fen.push_nibble(2);
-        }
-        7 => {
-            bin_fen.push_nibble(8);
-            bin_fen.push_nibble(3);
-        }
-        8 => {
-            bin_fen.push_nibble(8);
-            bin_fen.push_nibble(4);
-        }
+        1 => bin_fen.push_nibble(0x0),
+        2 => bin_fen.push_nibble(0x1),
+        3 => bin_fen.push_nibble(0x2),
+        4 => bin_fen.push_byte(0x80),
+        5 => bin_fen.push_byte(0x81),
+        6 => bin_fen.push_byte(0x82),
+        7 => bin_fen.push_byte(0x83),
+        8 => bin_fen.push_byte(0x84),
         _ => {}
     }
 }
 
 pub fn cdb_fen(setup: &Setup) -> Nibbles {
-    let mut bin_fen = Nibbles::with_capacity(10 + 1 + 1 + 1);
+    let mut bin_fen = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
 
     // Board
     for rank in Rank::ALL.into_iter().rev() {
@@ -81,27 +77,27 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
                     Piece {
                         color: Color::Black,
                         role: Role::Pawn,
-                    } => 3,
+                    } => 0x3,
                     Piece {
                         color: Color::Black,
                         role: Role::Knight,
-                    } => 4,
+                    } => 0x4,
                     Piece {
                         color: Color::Black,
                         role: Role::Bishop,
-                    } => 5,
+                    } => 0x5,
                     Piece {
                         color: Color::Black,
                         role: Role::Rook,
-                    } => 6,
+                    } => 0x6,
                     Piece {
                         color: Color::Black,
                         role: Role::Queen,
-                    } => 7,
+                    } => 0x7,
                     Piece {
                         color: Color::Black,
                         role: Role::King,
-                    } => 9,
+                    } => 0x9,
                     Piece {
                         color: Color::White,
                         role: Role::Pawn,
@@ -136,7 +132,7 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
     }
 
     // Turn
-    bin_fen.push_nibble(setup.turn.fold_wb(0, 1));
+    bin_fen.push_nibble(setup.turn.fold_wb(0x0, 0x1));
 
     // Castling rights
     let mut has_castling_rights = false;
@@ -153,10 +149,10 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
                 bin_fen.push_nibble(color.fold_wb(0xa, 0xc)); // K/k
             } else {
                 match color {
-                    Color::Black => bin_fen.push_nibble(u8::from(rook.file()) + 1),
+                    Color::Black => bin_fen.push_nibble(0x1 + u8::from(rook.file())),
                     Color::White => {
                         bin_fen.push_nibble(0xe);
-                        bin_fen.push_nibble(u8::from(rook.file()) + 0xa);
+                        bin_fen.push_nibble(0xa + u8::from(rook.file()));
                     }
                 }
             }
@@ -164,16 +160,16 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
         }
     }
     if !has_castling_rights {
-        bin_fen.push_nibble(0);
+        bin_fen.push_nibble(0x0);
     }
 
     // Space
-    bin_fen.push_nibble(9);
+    bin_fen.push_nibble(0x9);
 
     // Ep square
     if let Some(ep_square) = setup.ep_square {
-        bin_fen.push_nibble(u8::from(ep_square.file()) + 1);
-        bin_fen.push_nibble(u8::from(ep_square.rank()) + 1);
+        bin_fen.push_nibble(0x1 + u8::from(ep_square.file()));
+        bin_fen.push_nibble(0x1 + u8::from(ep_square.rank()));
     }
 
     bin_fen
