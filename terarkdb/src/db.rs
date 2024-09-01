@@ -45,7 +45,7 @@ impl Db {
         })
     }
 
-    pub fn open_for_readonly<P: AsRef<Path>>(
+    pub fn open_read_only<P: AsRef<Path>>(
         options: &Options,
         path: P,
         log_file: LogFile,

@@ -21,7 +21,7 @@ use shakmaty::fen::Fen;
 use terarkdb::{BlockBasedTableOptions, Cache, Db, LogFile, Options, ReadOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let db = Db::open_for_readonly(
+    let db = Db::open_read_only(
         Options::default()
             .increase_parallelism(16)
             .set_block_based_table_options(
