@@ -1,37 +1,66 @@
 use shakmaty::{Color, File, Piece, Rank, Role, Setup, Square};
 use std::mem;
 
-fn push_empty(nibbles: &mut Vec<u8>, empty: i32) {
+#[derive(Default)]
+pub struct Nibbles {
+    bytes: Vec<u8>,
+    half: bool,
+}
+
+impl Nibbles {
+    pub fn new() -> Nibbles {
+        Nibbles::default()
+    }
+
+    pub fn push_nibble(&mut self, nibble: u8) {
+        if self.half {
+            *self.bytes.last_mut().expect("non empty") |= nibble & 0xf;
+        } else {
+            self.bytes.push(nibble << 4);
+        }
+        self.half = !self.half;
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.bytes
+    }
+}
+
+fn push_empty(bin_fen: &mut Nibbles, empty: i32) {
     match empty {
-        1 => nibbles.push(0),
-        2 => nibbles.push(1),
-        3 => nibbles.push(2),
+        1 => bin_fen.push_nibble(0),
+        2 => bin_fen.push_nibble(1),
+        3 => bin_fen.push_nibble(2),
         4 => {
-            nibbles.push(8);
-            nibbles.push(0);
+            bin_fen.push_nibble(8);
+            bin_fen.push_nibble(0);
         }
         5 => {
-            nibbles.push(8);
-            nibbles.push(1);
+            bin_fen.push_nibble(8);
+            bin_fen.push_nibble(1);
         }
         6 => {
-            nibbles.push(8);
-            nibbles.push(2);
+            bin_fen.push_nibble(8);
+            bin_fen.push_nibble(2);
         }
         7 => {
-            nibbles.push(8);
-            nibbles.push(3);
+            bin_fen.push_nibble(8);
+            bin_fen.push_nibble(3);
         }
         8 => {
-            nibbles.push(8);
-            nibbles.push(4);
+            bin_fen.push_nibble(8);
+            bin_fen.push_nibble(4);
         }
         _ => {}
     }
 }
 
-pub fn cdb_fen(setup: &Setup) -> Vec<u8> {
-    let mut nibbles = Vec::new();
+pub fn cdb_fen(setup: &Setup) -> Nibbles {
+    let mut bin_fen = Nibbles::new();
 
     // Board
     for rank in Rank::ALL.into_iter().rev() {
@@ -39,9 +68,9 @@ pub fn cdb_fen(setup: &Setup) -> Vec<u8> {
         for file in File::ALL {
             let square = Square::from_coords(file, rank);
             if let Some(piece) = setup.board.piece_at(square) {
-                push_empty(&mut nibbles, mem::take(&mut empty));
+                push_empty(&mut bin_fen, mem::take(&mut empty));
 
-                nibbles.push(match piece {
+                bin_fen.push_nibble(match piece {
                     Piece {
                         color: Color::Black,
                         role: Role::Pawn,
@@ -96,11 +125,11 @@ pub fn cdb_fen(setup: &Setup) -> Vec<u8> {
             }
         }
 
-        push_empty(&mut nibbles, empty);
+        push_empty(&mut bin_fen, empty);
     }
 
     // Turn
-    nibbles.push(setup.turn.fold_wb(0, 1));
+    bin_fen.push_nibble(setup.turn.fold_wb(0, 1));
 
     // Castling rights
     let mut has_castling_rights = false;
@@ -112,15 +141,15 @@ pub fn cdb_fen(setup: &Setup) -> Vec<u8> {
         let candidates = setup.board.by_piece(color.rook()) & color.backrank();
         for rook in (setup.castling_rights & color.backrank()).into_iter().rev() {
             if Some(rook) == candidates.first() && king.map_or(false, |k| rook < k) {
-                nibbles.push(color.fold_wb(0xb, 0xd)); // Q/q
+                bin_fen.push_nibble(color.fold_wb(0xb, 0xd)); // Q/q
             } else if Some(rook) == candidates.last() && king.map_or(false, |k| k < rook) {
-                nibbles.push(color.fold_wb(0xa, 0xc)); // K/k
+                bin_fen.push_nibble(color.fold_wb(0xa, 0xc)); // K/k
             } else {
                 match color {
-                    Color::Black => nibbles.push(u8::from(rook.file()) + 1),
+                    Color::Black => bin_fen.push_nibble(u8::from(rook.file()) + 1),
                     Color::White => {
-                        nibbles.push(0xe);
-                        nibbles.push(u8::from(rook.file()) + 0xa);
+                        bin_fen.push_nibble(0xe);
+                        bin_fen.push_nibble(u8::from(rook.file()) + 0xa);
                     }
                 }
             }
@@ -128,21 +157,17 @@ pub fn cdb_fen(setup: &Setup) -> Vec<u8> {
         }
     }
     if !has_castling_rights {
-        nibbles.push(0);
+        bin_fen.push_nibble(0);
     }
 
     // Space
-    nibbles.push(9);
+    bin_fen.push_nibble(9);
 
     // Ep square
     if let Some(ep_square) = setup.ep_square {
-        nibbles.push(u8::from(ep_square.file()) + 1);
-        nibbles.push(u8::from(ep_square.rank()) + 1);
+        bin_fen.push_nibble(u8::from(ep_square.file()) + 1);
+        bin_fen.push_nibble(u8::from(ep_square.rank()) + 1);
     }
 
-    if nibbles.len() % 2 == 1 {
-        nibbles.push(0);
-    }
-
-    nibbles
+    bin_fen
 }

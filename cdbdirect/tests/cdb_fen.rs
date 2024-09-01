@@ -6,14 +6,6 @@ use shakmaty::{fen::Fen, CastlingMode, Chess, Color, File, Piece, Rank, Role, Se
 
 use cdbdirect::cdb_fen::cdb_fen;
 
-fn hex_fen(setup: &Setup) -> String {
-    let mut hex = String::new();
-    for nibble in cdb_fen(setup) {
-        hex.push(char::from_digit(u32::from(nibble), 16).unwrap());
-    }
-    hex
-}
-
 fn bw(mut setup: Setup) -> Setup {
     setup.mirror();
     setup
@@ -44,7 +36,7 @@ fn test_cdb_fen() {
         }
 
         assert_eq!(
-            hex_fen(record.fen.as_setup()),
+            hex::encode(cdb_fen(record.fen.as_setup()).as_bytes()),
             record.cdb_fen,
             "line {}: cdb_fen mismatch for {}",
             i + 2,
@@ -52,7 +44,7 @@ fn test_cdb_fen() {
         );
 
         assert_eq!(
-            hex_fen(&bw(record.fen.as_setup().clone())),
+            hex::encode(cdb_fen(&bw(record.fen.as_setup().clone())).as_bytes()),
             record.cdb_fen_bw,
             "line {}: cdb_fen_bw mismatch for {}",
             i + 2,

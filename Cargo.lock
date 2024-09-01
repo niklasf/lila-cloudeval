@@ -99,6 +99,7 @@ name = "cdbdirect"
 version = "0.1.0"
 dependencies = [
  "csv",
+ "hex",
  "serde",
  "serde_with",
  "shakmaty",
