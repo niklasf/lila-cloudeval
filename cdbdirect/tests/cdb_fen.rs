@@ -32,7 +32,7 @@ fn test_cdb_fen() {
         let bin_fen_bw = cdb_fen(&record.fen.as_setup().clone().into_mirrored());
 
         assert_eq!(
-            hex::encode(bin_fen.as_bytes()),
+            hex::encode(&bin_fen.as_bytes()[1..]),
             record.cdb_fen,
             "line {}: cdb_fen mismatch for {}",
             i + 2,
@@ -40,7 +40,7 @@ fn test_cdb_fen() {
         );
 
         assert_eq!(
-            hex::encode(bin_fen_bw.as_bytes()),
+            hex::encode(&bin_fen_bw.as_bytes()[1..]),
             record.cdb_fen_bw,
             "line {}: cdb_fen_bw mismatch for {}",
             i + 2,

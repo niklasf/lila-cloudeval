@@ -65,6 +65,8 @@ fn push_empty(bin_fen: &mut Nibbles, empty: i32) {
 pub fn cdb_fen(setup: &Setup) -> Nibbles {
     let mut bin_fen = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
 
+    bin_fen.push_byte(b'h');
+
     // Board
     for rank in Rank::ALL.into_iter().rev() {
         let mut empty = 0;
