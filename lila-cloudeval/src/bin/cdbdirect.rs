@@ -13,7 +13,7 @@ use std::{
     time::Instant,
 };
 
-use cdbdirect::{
+use lila_cloudeval::{
     cdb_fen::{push_cdb_fen, Nibbles},
     cdb_moves::ScoredMoves,
 };

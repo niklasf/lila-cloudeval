@@ -1,5 +1,5 @@
 [package]
-name = "cdbdirect"
+name = "lila-cloudeval"
 version = "0.1.0"
 description = "Query chessdb.cn database dump"
 edition = "2021"
