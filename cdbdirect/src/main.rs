@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let found = AtomicU64::new(0);
     let not_found = AtomicU64::new(0);
     let total_moves = AtomicU64::new(0);
+    let found_ply_from_root = AtomicU64::new(0);
 
     rayon::scope(|s| {
         let (tx, rx) = crossbeam_channel::bounded::<String>(10_000);
@@ -41,6 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let found = &found;
             let not_found = &not_found;
             let total_moves = &total_moves;
+            let found_ply_from_root = &found_ply_from_root;
             let rx = rx.clone();
 
             s.spawn(move |_| {
@@ -73,9 +75,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .unwrap();
 
                     if let Some(value) = value {
-                        let (scored_moves, ply) = read_cdb_moves(&mut &value[..]);
+                        let (scored_moves, ply_from_root) = read_cdb_moves(&mut &value[..]);
                         found.fetch_add(1, Ordering::Relaxed);
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);
+                        if ply_from_root.is_some() {
+                            found_ply_from_root.fetch_add(1, Ordering::Relaxed);
+                        }
                     } else {
                         not_found.fetch_add(1, Ordering::Relaxed);
                     }
@@ -94,6 +99,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("{} found", found.load(Ordering::Relaxed));
     println!("{} missing", not_found.load(Ordering::Relaxed));
     println!("{} scored moves", total_moves.load(Ordering::Relaxed));
+    println!(
+        "{} found with ply from root",
+        found_ply_from_root.load(Ordering::Relaxed)
+    );
 
     Ok(())
 }

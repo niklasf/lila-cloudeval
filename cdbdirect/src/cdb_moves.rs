@@ -54,13 +54,11 @@ pub fn read_cdb_moves<B: Buf>(buf: &mut B) -> (Vec<(UciMove, i16)>, Option<u32>)
     let mut scored_moves = Vec::new();
     let mut ply_from_root = None;
     while buf.has_remaining() {
-        let src = buf.get_u8();
         let dst = buf.get_u8();
+        let src = buf.get_u8();
         let score = buf.get_i16();
 
-        continue;
-
-        if src & 0x7f == 0 && dst & 0x7f == 0 {
+        if src == 0 && dst == 0 {
             ply_from_root = Some(u32::try_from(score).unwrap());
             continue;
         }
