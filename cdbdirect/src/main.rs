@@ -3,6 +3,7 @@
 use std::{
     error::Error,
     fs::File,
+    hint::black_box,
     io::{BufRead as _, BufReader},
     sync::{
         atomic::{AtomicU64, Ordering},
@@ -96,6 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
 
                         // println!("{line}: {scored_moves:?}");
+                        black_box(&mut scored_moves);
                     } else {
                         not_found.lock().unwrap().push(line);
                     }
