@@ -1,5 +1,6 @@
-use shakmaty::{Color, File, Piece, Rank, Role, Setup, Square};
 use std::mem;
+
+use shakmaty::{Color, File, Piece, Rank, Role, Setup, Square};
 
 #[derive(Default)]
 pub struct Nibbles {

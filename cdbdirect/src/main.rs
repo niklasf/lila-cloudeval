@@ -1,19 +1,21 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use cdbdirect::cdb_fen::push_cdb_fen;
-use cdbdirect::cdb_fen::Nibbles;
+use std::{
+    error::Error,
+    fs::File,
+    io::{BufRead as _, BufReader},
+};
+
+use cdbdirect::cdb_fen::{push_cdb_fen, Nibbles};
 use shakmaty::fen::Fen;
-use std::error::Error;
-use std::fs::File;
-use std::io::BufRead as _;
-use std::io::BufReader;
-use terarkdb::{Db, Options, ReadOptions};
+use terarkdb::{Db, LogFile, Options, ReadOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut options = Options::new();
     options.increase_parallelism(16);
 
-    let db = Db::open_for_readonly(&options, c"/mnt/ssd/chess-20240814/data", false).unwrap();
+    let db =
+        Db::open_for_readonly(&options, c"/mnt/ssd/chess-20240814/data", LogFile::Ignore).unwrap();
 
     let mut found = 0;
     let mut not_found = 0;

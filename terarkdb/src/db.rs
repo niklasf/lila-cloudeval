@@ -11,6 +11,13 @@ use crate::{
     error::Error, options::Options, pinnable_slice::PinnableSlice, read_options::ReadOptions,
 };
 
+#[derive(Default)]
+pub enum LogFile {
+    #[default]
+    Ignore = 0,
+    ErrorIfExists = 1,
+}
+
 pub struct Db {
     inner: NonNull<rocksdb_t>,
 }
@@ -28,14 +35,14 @@ impl Db {
     pub fn open_for_readonly(
         options: &Options,
         name: &CStr,
-        error_if_log_file_exists: bool,
+        log_file: LogFile,
     ) -> Result<Db, Error> {
         let mut error = Error::new();
         let maybe_db = unsafe {
             rocksdb_open_for_read_only(
                 options.as_ptr(),
                 name.as_ptr(),
-                c_uchar::from(error_if_log_file_exists),
+                log_file as c_uchar,
                 error.as_mut_ptr(),
             )
         };

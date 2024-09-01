@@ -1,8 +1,7 @@
+use cdbdirect::cdb_fen::cdb_fen;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use shakmaty::{fen::Fen, CastlingMode, Chess};
-
-use cdbdirect::cdb_fen::cdb_fen;
 
 #[serde_as]
 #[derive(Deserialize)]

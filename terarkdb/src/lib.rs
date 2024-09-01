@@ -7,7 +7,7 @@ mod options;
 mod pinnable_slice;
 mod read_options;
 
-pub use db::Db;
+pub use db::{Db, LogFile};
 pub use error::Error;
 pub use iterator::Iterator;
 pub use options::Options;
