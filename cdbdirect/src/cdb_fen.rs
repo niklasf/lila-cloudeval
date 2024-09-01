@@ -66,6 +66,59 @@ fn push_empty(nibbles: &mut Nibbles, empty: i32) {
     }
 }
 
+fn push_piece(nibbles: &mut Nibbles, piece: Piece) {
+    nibbles.push_nibble(match piece {
+        Piece {
+            color: Color::Black,
+            role: Role::Pawn,
+        } => 0x3,
+        Piece {
+            color: Color::Black,
+            role: Role::Knight,
+        } => 0x4,
+        Piece {
+            color: Color::Black,
+            role: Role::Bishop,
+        } => 0x5,
+        Piece {
+            color: Color::Black,
+            role: Role::Rook,
+        } => 0x6,
+        Piece {
+            color: Color::Black,
+            role: Role::Queen,
+        } => 0x7,
+        Piece {
+            color: Color::Black,
+            role: Role::King,
+        } => 0x9,
+        Piece {
+            color: Color::White,
+            role: Role::Pawn,
+        } => 0xa,
+        Piece {
+            color: Color::White,
+            role: Role::Knight,
+        } => 0xb,
+        Piece {
+            color: Color::White,
+            role: Role::Bishop,
+        } => 0xc,
+        Piece {
+            color: Color::White,
+            role: Role::Rook,
+        } => 0xd,
+        Piece {
+            color: Color::White,
+            role: Role::Queen,
+        } => 0xe,
+        Piece {
+            color: Color::White,
+            role: Role::King,
+        } => 0xf,
+    });
+}
+
 pub fn cdb_fen(setup: &Setup) -> Nibbles {
     let mut nibbles = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
     push_cdb_fen(&mut nibbles, setup);
@@ -84,57 +137,7 @@ pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
             push_empty(nibbles, i32::from(square.file()) - prev_file - 1);
             prev_file = i32::from(square.file());
 
-            let piece = setup.board.piece_at(square).expect("piece");
-            nibbles.push_nibble(match piece {
-                Piece {
-                    color: Color::Black,
-                    role: Role::Pawn,
-                } => 0x3,
-                Piece {
-                    color: Color::Black,
-                    role: Role::Knight,
-                } => 0x4,
-                Piece {
-                    color: Color::Black,
-                    role: Role::Bishop,
-                } => 0x5,
-                Piece {
-                    color: Color::Black,
-                    role: Role::Rook,
-                } => 0x6,
-                Piece {
-                    color: Color::Black,
-                    role: Role::Queen,
-                } => 0x7,
-                Piece {
-                    color: Color::Black,
-                    role: Role::King,
-                } => 0x9,
-                Piece {
-                    color: Color::White,
-                    role: Role::Pawn,
-                } => 0xa,
-                Piece {
-                    color: Color::White,
-                    role: Role::Knight,
-                } => 0xb,
-                Piece {
-                    color: Color::White,
-                    role: Role::Bishop,
-                } => 0xc,
-                Piece {
-                    color: Color::White,
-                    role: Role::Rook,
-                } => 0xd,
-                Piece {
-                    color: Color::White,
-                    role: Role::Queen,
-                } => 0xe,
-                Piece {
-                    color: Color::White,
-                    role: Role::King,
-                } => 0xf,
-            });
+            push_piece(nibbles, setup.board.piece_at(square).expect("piece"));
         }
 
         push_empty(nibbles, i32::from(File::H) - prev_file);
