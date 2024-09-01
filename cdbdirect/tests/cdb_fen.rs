@@ -1,15 +1,8 @@
-use std::mem;
-
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
-use shakmaty::{fen::Fen, CastlingMode, Chess, Color, File, Piece, Rank, Role, Setup, Square};
+use shakmaty::{fen::Fen, CastlingMode, Chess};
 
 use cdbdirect::cdb_fen::cdb_fen;
-
-fn bw(mut setup: Setup) -> Setup {
-    setup.mirror();
-    setup
-}
 
 #[serde_as]
 #[derive(Deserialize)]
@@ -35,8 +28,11 @@ fn test_cdb_fen() {
             continue;
         }
 
+        let bin_fen = cdb_fen(record.fen.as_setup());
+        let bin_fen_bw = cdb_fen(&record.fen.as_setup().clone().into_mirrored());
+
         assert_eq!(
-            hex::encode(cdb_fen(record.fen.as_setup()).as_bytes()),
+            hex::encode(bin_fen.as_bytes()),
             record.cdb_fen,
             "line {}: cdb_fen mismatch for {}",
             i + 2,
@@ -44,9 +40,17 @@ fn test_cdb_fen() {
         );
 
         assert_eq!(
-            hex::encode(cdb_fen(&bw(record.fen.as_setup().clone())).as_bytes()),
+            hex::encode(bin_fen_bw.as_bytes()),
             record.cdb_fen_bw,
             "line {}: cdb_fen_bw mismatch for {}",
+            i + 2,
+            record.fen
+        );
+
+        assert_eq!(
+            bin_fen.as_bytes() < bin_fen_bw.as_bytes(),
+            record.cdb_fen < record.cdb_fen_bw,
+            "line {}: natural order mismatch for {}",
             i + 2,
             record.fen
         );
