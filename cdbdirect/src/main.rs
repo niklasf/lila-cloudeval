@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let found_ply_from_root = AtomicU64::new(0);
 
     rayon::scope(|s| {
-        let (tx, rx) = crossbeam_channel::bounded::<String>(10_000);
+        let (tx, rx) = crossbeam_channel::bounded::<String>(1_000_000);
 
         for _ in 0..usize::from(thread::available_parallelism().unwrap()) {
             let db = &db;
