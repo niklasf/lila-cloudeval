@@ -154,7 +154,7 @@ pub fn cdb_fen(setup: &Setup) -> Nibbles {
                     Color::Black => bin_fen.push_nibble(0x1 + u8::from(rook.file())),
                     Color::White => {
                         bin_fen.push_nibble(0xe);
-                        bin_fen.push_nibble(0xa + u8::from(rook.file()));
+                        bin_fen.push_nibble(0x1 + u8::from(rook.file()));
                     }
                 }
             }
