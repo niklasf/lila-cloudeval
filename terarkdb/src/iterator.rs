@@ -134,3 +134,6 @@ impl Drop for Iterator<'_, '_> {
         unsafe { rocksdb_iter_destroy(self.as_mut_ptr()) };
     }
 }
+
+unsafe impl Send for Iterator<'_, '_> {}
+unsafe impl Sync for Iterator<'_, '_> {}

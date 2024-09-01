@@ -50,3 +50,6 @@ impl Drop for BlockBasedTableOptions {
         }
     }
 }
+
+unsafe impl Send for BlockBasedTableOptions {}
+unsafe impl Sync for BlockBasedTableOptions {}

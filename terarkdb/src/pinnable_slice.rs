@@ -55,3 +55,6 @@ impl Drop for PinnableSlice<'_> {
         }
     }
 }
+
+unsafe impl Send for PinnableSlice<'_> {}
+unsafe impl Sync for PinnableSlice<'_> {}

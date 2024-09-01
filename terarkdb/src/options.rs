@@ -64,3 +64,6 @@ impl Drop for Options {
         }
     }
 }
+
+unsafe impl Send for Options {}
+unsafe impl Sync for Options {}

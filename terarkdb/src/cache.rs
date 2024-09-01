@@ -25,8 +25,11 @@ impl Cache {
 impl Drop for Cache {
     fn drop(&mut self) {
         unsafe {
-            // Decrement reference counter of the underlying object.
+            // Decrement atomic reference counter of the underlying object.
             rocksdb_cache_destroy(self.as_mut_ptr());
         }
     }
 }
+
+unsafe impl Send for Cache {}
+unsafe impl Sync for Cache {}

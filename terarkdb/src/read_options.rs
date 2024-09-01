@@ -37,3 +37,6 @@ impl Drop for ReadOptions {
         }
     }
 }
+
+unsafe impl Send for ReadOptions {}
+unsafe impl Sync for ReadOptions {}

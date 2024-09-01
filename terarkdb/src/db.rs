@@ -103,3 +103,6 @@ impl Drop for Db {
         }
     }
 }
+
+unsafe impl Send for Db {}
+unsafe impl Sync for Db {}

@@ -4,6 +4,8 @@ use std::{
     error::Error,
     fs::File,
     io::{BufRead as _, BufReader},
+    sync::atomic::AtomicU64,
+    sync::atomic::Ordering,
     time::Instant,
 };
 
@@ -25,52 +27,64 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let started_at = Instant::now();
 
-    let mut found = 0;
-    let mut not_found = 0;
+    let found = AtomicU64::new(0);
+    let not_found = AtomicU64::new(0);
 
     let read_options = ReadOptions::default();
 
-    let mut bin_fen = Nibbles::new();
-    let mut bin_fen_bw = Nibbles::new();
+    rayon::scope(|s| {
+        let (tx, rx) = crossbeam_channel::bounded::<String>(1000);
 
-    let mut reader = BufReader::new(File::open("/root/lila-cloudeval-bench/fens.txt")?);
-    let mut line = Vec::new();
-    while reader.read_until(b'\n', &mut line)? != 0 {
-        if line[line.len() - 1] == b'\n' {
-            line.pop();
+        {
+            let found = &found;
+            let not_found = &not_found;
+            let rx = rx.clone();
+            s.spawn(move |_| {
+                while let Ok(line) = rx.recv() {
+                    let mut bin_fen = Nibbles::new();
+                    let mut bin_fen_bw = Nibbles::new();
+
+                    let mut setup = line.parse::<Fen>().unwrap().into_setup();
+
+                    bin_fen.clear();
+                    push_cdb_fen(&mut bin_fen, &setup);
+
+                    setup.mirror();
+                    bin_fen_bw.clear();
+                    push_cdb_fen(&mut bin_fen_bw, &setup);
+
+                    let natural_order = bin_fen.as_bytes() < bin_fen_bw.as_bytes();
+
+                    let value = db
+                        .get_opt(
+                            if natural_order {
+                                bin_fen.as_bytes()
+                            } else {
+                                bin_fen_bw.as_bytes()
+                            },
+                            &read_options,
+                        )
+                        .unwrap();
+
+                    if value.is_some() {
+                        found.fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        not_found.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+            });
         }
 
-        let mut setup = Fen::from_ascii(&line)?.into_setup();
-
-        bin_fen.clear();
-        push_cdb_fen(&mut bin_fen, &setup);
-
-        setup.mirror();
-        bin_fen_bw.clear();
-        push_cdb_fen(&mut bin_fen_bw, &setup);
-
-        let natural_order = bin_fen.as_bytes() < bin_fen_bw.as_bytes();
-
-        let value = db.get_opt(
-            if natural_order {
-                bin_fen.as_bytes()
-            } else {
-                bin_fen_bw.as_bytes()
-            },
-            &read_options,
-        )?;
-
-        match value {
-            Some(_) => found += 1,
-            None => not_found += 1,
+        for line in
+            BufReader::new(File::open("/root/lila-cloudeval-bench/fens.txt").unwrap()).lines()
+        {
+            tx.send(line.unwrap()).unwrap();
         }
-
-        line.clear();
-    }
+    });
 
     println!("{:.1?} elpased", started_at.elapsed());
-    println!("{found} found");
-    println!("{not_found} missing");
+    println!("{} found", found.load(Ordering::Relaxed));
+    println!("{} missing", not_found.load(Ordering::Relaxed));
 
     Ok(())
 }
