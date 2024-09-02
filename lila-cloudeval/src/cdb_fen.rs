@@ -66,56 +66,21 @@ fn push_empty(nibbles: &mut Nibbles, empty: i32) {
     }
 }
 
+#[rustfmt::skip]
 fn push_piece(nibbles: &mut Nibbles, piece: Piece) {
     nibbles.push_nibble(match piece {
-        Piece {
-            color: Color::Black,
-            role: Role::Pawn,
-        } => 0x3,
-        Piece {
-            color: Color::Black,
-            role: Role::Knight,
-        } => 0x4,
-        Piece {
-            color: Color::Black,
-            role: Role::Bishop,
-        } => 0x5,
-        Piece {
-            color: Color::Black,
-            role: Role::Rook,
-        } => 0x6,
-        Piece {
-            color: Color::Black,
-            role: Role::Queen,
-        } => 0x7,
-        Piece {
-            color: Color::Black,
-            role: Role::King,
-        } => 0x9,
-        Piece {
-            color: Color::White,
-            role: Role::Pawn,
-        } => 0xa,
-        Piece {
-            color: Color::White,
-            role: Role::Knight,
-        } => 0xb,
-        Piece {
-            color: Color::White,
-            role: Role::Bishop,
-        } => 0xc,
-        Piece {
-            color: Color::White,
-            role: Role::Rook,
-        } => 0xd,
-        Piece {
-            color: Color::White,
-            role: Role::Queen,
-        } => 0xe,
-        Piece {
-            color: Color::White,
-            role: Role::King,
-        } => 0xf,
+        Piece { color: Color::Black, role: Role::Pawn }   => 0x3,
+        Piece { color: Color::Black, role: Role::Knight } => 0x4,
+        Piece { color: Color::Black, role: Role::Bishop } => 0x5,
+        Piece { color: Color::Black, role: Role::Rook }   => 0x6,
+        Piece { color: Color::Black, role: Role::Queen}   => 0x7,
+        Piece { color: Color::Black, role: Role::King }   => 0x9,
+        Piece { color: Color::White, role: Role::Pawn }   => 0xa,
+        Piece { color: Color::White, role: Role::Knight } => 0xb,
+        Piece { color: Color::White, role: Role::Bishop } => 0xc,
+        Piece { color: Color::White, role: Role::Rook}    => 0xd,
+        Piece { color: Color::White, role: Role::Queen}   => 0xe,
+        Piece { color: Color::White, role: Role::King }   => 0xf,
     });
 }
 
@@ -153,7 +118,9 @@ pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
             .board
             .king_of(color)
             .filter(|k| k.rank() == color.backrank());
+
         let candidates = setup.board.by_piece(color.rook()) & color.backrank();
+
         for rook in (setup.castling_rights & color.backrank()).into_iter().rev() {
             if Some(rook) == candidates.first() && king.map_or(false, |k| rook < k) {
                 nibbles.push_nibble(color.fold_wb(0xb, 0xd)); // Q/q
