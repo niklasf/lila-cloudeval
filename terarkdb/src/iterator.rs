@@ -32,15 +32,11 @@ impl<'db, 'options> Iterator<'db, 'options> {
     }
 
     pub fn status(&self) -> Result<(), Error> {
-        let mut error = Error::new();
+        let mut error = None;
         unsafe {
-            rocksdb_iter_get_error(self.as_ptr(), error.as_mut_ptr());
+            rocksdb_iter_get_error(self.as_ptr(), Error::out_ptr(&mut error));
         }
-        if error.is_null() {
-            Ok(())
-        } else {
-            Err(error)
-        }
+        error.map_or(Ok(()), Err)
     }
 
     pub fn seek_to_first(&mut self) {

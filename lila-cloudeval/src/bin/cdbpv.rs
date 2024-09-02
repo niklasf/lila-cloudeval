@@ -1,9 +1,8 @@
-use clap::Parser as _;
-use lila_cloudeval::database::Database;
-use lila_cloudeval::database::DatabaseOpt;
-use shakmaty::Chess;
-use shakmaty::Setup;
 use std::error::Error;
+
+use clap::Parser as _;
+use lila_cloudeval::database::{Database, DatabaseOpt};
+use shakmaty::{Chess, Setup};
 
 #[derive(Debug, clap::Parser)]
 struct Opt {

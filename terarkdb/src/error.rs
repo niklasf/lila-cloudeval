@@ -1,19 +1,14 @@
 use std::{
     error::Error as StdError,
-    ffi::{c_char, c_void, CStr},
-    fmt, ptr,
+    ffi::{c_char, CStr},
+    fmt,
 };
 
-use terarkdb_sys::rocksdb_free;
+use crate::util::Malloced;
 
+#[repr(transparent)]
 pub struct Error {
-    inner: *mut c_char,
-}
-
-impl Default for Error {
-    fn default() -> Error {
-        Error::new()
-    }
+    inner: Malloced<c_char>,
 }
 
 impl fmt::Debug for Error {
@@ -31,57 +26,12 @@ impl fmt::Display for Error {
 impl StdError for Error {}
 
 impl Error {
-    pub fn new() -> Error {
-        Error {
-            inner: ptr::null_mut(),
-        }
-    }
-
-    pub(crate) fn or<T>(self, value: T) -> Result<T, Error> {
-        if self.is_null() {
-            Ok(value)
-        } else {
-            Err(self)
-        }
-    }
-
-    pub(crate) fn or_else<T, F>(self, f: F) -> Result<T, Error>
-    where
-        F: FnOnce() -> T,
-    {
-        if self.is_null() {
-            Ok(f())
-        } else {
-            Err(self)
-        }
-    }
-
-    pub(crate) fn is_null(&self) -> bool {
-        self.inner.is_null()
-    }
-
-    pub(crate) fn as_mut_ptr(&mut self) -> *mut *mut c_char {
-        &mut self.inner
-    }
-
     pub(crate) fn as_cstr(&self) -> &CStr {
-        if self.is_null() {
-            c"no error"
-        } else {
-            unsafe { CStr::from_ptr(self.inner) }
-        }
+        unsafe { self.inner.as_cstr() }
+    }
+
+    pub(crate) fn out_ptr(error: &mut Option<Error>) -> *mut *mut c_char {
+        let p: *mut Option<Error> = error;
+        p as _
     }
 }
-
-impl Drop for Error {
-    fn drop(&mut self) {
-        if !self.is_null() {
-            unsafe {
-                rocksdb_free(self.inner.cast::<c_void>());
-            }
-        }
-    }
-}
-
-unsafe impl Send for Error {}
-unsafe impl Sync for Error {}

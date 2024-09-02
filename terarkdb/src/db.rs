@@ -31,18 +31,23 @@ pub struct Db {
 
 impl Db {
     pub fn open<P: AsRef<Path>>(options: &Options, path: P) -> Result<Db, Error> {
-        let mut error = Error::new();
+        let mut error = None;
         let maybe_db = unsafe {
             rocksdb_open(
                 options.as_ptr(),
                 cpath(path.as_ref()).as_ptr(),
-                error.as_mut_ptr(),
+                Error::out_ptr(&mut error),
             )
         };
 
-        error.or_else(|| Db {
-            inner: NonNull::new(maybe_db).unwrap(),
-        })
+        error.map_or_else(
+            || {
+                Ok(Db {
+                    inner: NonNull::new(maybe_db).unwrap(),
+                })
+            },
+            Err,
+        )
     }
 
     pub fn open_read_only<P: AsRef<Path>>(
@@ -50,19 +55,24 @@ impl Db {
         path: P,
         log_file: LogFile,
     ) -> Result<Db, Error> {
-        let mut error = Error::new();
+        let mut error = None;
         let maybe_db = unsafe {
             rocksdb_open_for_read_only(
                 options.as_ptr(),
                 cpath(path.as_ref()).as_ptr(),
                 log_file as c_uchar,
-                error.as_mut_ptr(),
+                Error::out_ptr(&mut error),
             )
         };
 
-        error.or_else(|| Db {
-            inner: NonNull::new(maybe_db).unwrap(),
-        })
+        error.map_or_else(
+            || {
+                Ok(Db {
+                    inner: NonNull::new(maybe_db).unwrap(),
+                })
+            },
+            Err,
+        )
     }
 
     pub fn get<'db, K: AsRef<[u8]>>(
@@ -78,19 +88,28 @@ impl Db {
         read_options: &ReadOptions,
     ) -> Result<Option<PinnableSlice<'db>>, Error> {
         let key = key.as_ref();
-        let mut error = Error::new();
+        let mut error = None;
         let maybe_slice = unsafe {
             PinnableSlice::new(rocksdb_get_pinned(
                 self.as_mut_ptr(),
                 read_options.as_ptr(),
                 key.as_ptr().cast::<c_char>(),
                 key.len(),
-                error.as_mut_ptr(),
+                Error::out_ptr(&mut error),
             ))
         };
 
-        error.or(maybe_slice)
+        error.map_or(Ok(maybe_slice), Err)
     }
+
+    /* pub fn multi_get_opt<K, I>(keys: I) -> Result<MultiGet, Error>
+    where
+        K: AsRef<[u8]>,
+        I: IntoIterator<Item = K>,
+    {
+        let multi_get = MultiGet::new();
+        Ok(multi_get)
+    } */
 
     pub(crate) fn as_mut_ptr(&self) -> *mut rocksdb_t {
         self.inner.as_ptr()
