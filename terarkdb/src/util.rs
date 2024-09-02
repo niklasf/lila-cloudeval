@@ -18,6 +18,13 @@ pub struct Malloced<T> {
 }
 
 impl<T> Malloced<T> {
+    pub(crate) unsafe fn new(ptr_or_null: *mut T) -> Option<Malloced<T>> {
+        Some(Malloced {
+            inner: NonNull::new(ptr_or_null)?,
+            marker: PhantomData,
+        })
+    }
+
     pub fn as_ptr(&self) -> *const T {
         self.inner.as_ptr()
     }

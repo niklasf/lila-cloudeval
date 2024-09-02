@@ -1,8 +1,7 @@
 use std::{
     ffi::c_char,
     iter::{FusedIterator, IntoIterator, Zip},
-    ops::Deref,
-    slice, vec,
+    vec,
 };
 
 use crate::{

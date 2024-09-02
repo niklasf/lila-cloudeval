@@ -5,13 +5,13 @@ use std::{
 };
 
 use terarkdb_sys::{
-    rocksdb_close, rocksdb_get_pinned, rocksdb_multi_get, rocksdb_open, rocksdb_open_for_read_only,
-    rocksdb_t,
+    rocksdb_close, rocksdb_get, rocksdb_get_pinned, rocksdb_multi_get, rocksdb_open,
+    rocksdb_open_for_read_only, rocksdb_t,
 };
 
 use crate::{
     error::Error, multi_get::MultiGet, options::Options, pinnable_slice::PinnableSlice,
-    read_options::ReadOptions, util::Malloced,
+    read_options::ReadOptions, util::Malloced, MallocedBytes,
 };
 
 fn cpath(path: &Path) -> CString {
@@ -77,11 +77,40 @@ impl Db {
         )
     }
 
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<PinnableSlice<'_>>, Error> {
+    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<MallocedBytes>, Error> {
         self.get_opt(key, &ReadOptions::default())
     }
 
     pub fn get_opt<K: AsRef<[u8]>>(
+        &self,
+        key: K,
+        read_options: &ReadOptions,
+    ) -> Result<Option<MallocedBytes>, Error> {
+        let key = key.as_ref();
+        let mut error = None;
+        let mut len = 0;
+        let maybe_bytes = unsafe {
+            Malloced::new(rocksdb_get(
+                self.as_mut_ptr(),
+                read_options.as_ptr(),
+                key.as_ptr().cast::<c_char>(),
+                key.len(),
+                &mut len,
+                Error::out_ptr(&mut error),
+            ))
+        };
+
+        error.map_or_else(
+            || Ok(maybe_bytes.map(|bytes| unsafe { MallocedBytes::from_parts(bytes, len) })),
+            Err,
+        )
+    }
+
+    pub fn get_pinned<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<PinnableSlice<'_>>, Error> {
+        self.get_pinned_opt(key, &ReadOptions::default())
+    }
+
+    pub fn get_pinned_opt<K: AsRef<[u8]>>(
         &self,
         key: K,
         read_options: &ReadOptions,
@@ -131,6 +160,7 @@ impl Db {
                 Error::out_ptr(multi_get.errors.as_mut_ptr()),
             );
         }
+
         multi_get
     }
 

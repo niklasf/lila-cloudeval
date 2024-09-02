@@ -53,7 +53,7 @@ impl Database {
         let bin_fen_mirrored = cdb_fen(&setup.into_mirrored());
         let natural_order = bin_fen.as_bytes() < bin_fen_mirrored.as_bytes();
 
-        let maybe_value = self.inner.get(match natural_order {
+        let maybe_value = self.inner.get_pinned(match natural_order {
             true => bin_fen.as_bytes(),
             false => bin_fen_mirrored.as_bytes(),
         })?;
