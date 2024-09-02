@@ -19,3 +19,4 @@ pub use iterator::Iterator;
 pub use multi_get::MultiGet;
 pub use options::Options;
 pub use read_options::ReadOptions;
+pub use util::MallocedBytes;

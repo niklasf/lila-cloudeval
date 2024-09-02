@@ -37,8 +37,9 @@ impl Error {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::mem;
+
+    use super::*;
 
     #[test]
     fn test_error_repr() {

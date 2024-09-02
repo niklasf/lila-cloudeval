@@ -1,4 +1,10 @@
-use std::{ffi::c_void, marker::PhantomData, ptr::NonNull};
+use core::slice;
+use std::{
+    ffi::{c_char, c_void},
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    ptr::NonNull,
+};
 
 use terarkdb_sys::rocksdb_free;
 
@@ -36,11 +42,48 @@ impl<T> Drop for Malloced<T> {
     }
 }
 
+pub struct MallocedBytes {
+    ptr: Malloced<c_char>,
+    len: usize,
+}
+
+impl MallocedBytes {
+    pub unsafe fn from_parts(ptr: Malloced<c_char>, len: usize) -> MallocedBytes {
+        MallocedBytes { ptr, len }
+    }
+}
+
+impl AsRef<[u8]> for MallocedBytes {
+    fn as_ref(&self) -> &[u8] {
+        self
+    }
+}
+
+impl AsMut<[u8]> for MallocedBytes {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self
+    }
+}
+
+impl Deref for MallocedBytes {
+    type Target = [u8];
+
+    fn deref(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.ptr.as_ptr().cast::<u8>(), self.len) }
+    }
+}
+
+impl DerefMut for MallocedBytes {
+    fn deref_mut(&mut self) -> &mut [u8] {
+        unsafe { slice::from_raw_parts_mut(self.ptr.as_mut_ptr().cast::<u8>(), self.len) }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::{ffi::c_char, mem};
+
     use super::*;
-    use std::ffi::c_char;
-    use std::mem;
 
     #[test]
     fn test_malloced_repr() {

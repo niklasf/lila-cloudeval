@@ -1,31 +1,14 @@
-use crate::error::Error;
-use crate::util::Malloced;
-use std::ffi::c_char;
-use std::iter::FusedIterator;
-use std::iter::IntoIterator;
-use std::iter::Zip;
-use std::ops::Deref;
-use std::slice;
-use std::vec;
+use std::{
+    ffi::c_char,
+    iter::{FusedIterator, IntoIterator, Zip},
+    ops::Deref,
+    slice, vec,
+};
 
-pub struct MultiGetItem {
-    value: Malloced<c_char>,
-    len: usize,
-}
-
-impl AsRef<[u8]> for MultiGetItem {
-    fn as_ref(&self) -> &[u8] {
-        self
-    }
-}
-
-impl Deref for MultiGetItem {
-    type Target = [u8];
-
-    fn deref(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.value.as_ptr().cast::<u8>(), self.len) }
-    }
-}
+use crate::{
+    error::Error,
+    util::{Malloced, MallocedBytes},
+};
 
 #[derive(Debug)]
 pub struct MultiGet {
@@ -52,7 +35,7 @@ impl MultiGet {
 
 impl IntoIterator for MultiGet {
     type IntoIter = MultiGetIntoIter;
-    type Item = Result<Option<MultiGetItem>, Error>;
+    type Item = Result<Option<MallocedBytes>, Error>;
 
     fn into_iter(self) -> MultiGetIntoIter {
         MultiGetIntoIter {
@@ -72,14 +55,14 @@ pub struct MultiGetIntoIter {
 }
 
 impl Iterator for MultiGetIntoIter {
-    type Item = Result<Option<MultiGetItem>, Error>;
+    type Item = Result<Option<MallocedBytes>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.raw
             .next()
             .map(|(error, (maybe_value, len))| match (error, maybe_value) {
                 (Some(error), _) => Err(error),
-                (_, Some(value)) => Ok(Some(MultiGetItem { value, len })),
+                (_, Some(value)) => Ok(Some(unsafe { MallocedBytes::from_parts(value, len) })),
                 (_, None) => Ok(None),
             })
     }
