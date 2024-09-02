@@ -27,11 +27,10 @@ impl StdError for Error {}
 
 impl Error {
     pub(crate) fn as_cstr(&self) -> &CStr {
-        unsafe { self.inner.as_cstr() }
+        unsafe { CStr::from_ptr(self.inner.as_ptr()) }
     }
 
-    pub(crate) fn out_ptr(error: &mut Option<Error>) -> *mut *mut c_char {
-        let p: *mut Option<Error> = error;
-        p as _
+    pub(crate) fn out_ptr(error: *mut Option<Error>) -> *mut *mut c_char {
+        error as _
     }
 }

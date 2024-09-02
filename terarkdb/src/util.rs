@@ -1,12 +1,10 @@
-use std::{
-    ffi::{c_char, c_void, CStr},
-    marker::PhantomData,
-    ptr::NonNull,
-    slice,
-};
+use std::{ffi::c_void, marker::PhantomData, ptr::NonNull};
 
 use terarkdb_sys::rocksdb_free;
 
+/// Non-null `*mut T` representing an owned `T` that can be freed with
+/// `rocksdb_free()`.
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct Malloced<T> {
     inner: NonNull<T>,
@@ -21,15 +19,9 @@ impl<T> Malloced<T> {
     pub fn as_mut_ptr(&mut self) -> *mut T {
         self.inner.as_ptr()
     }
-}
 
-impl Malloced<c_char> {
-    pub unsafe fn as_bytes_with_len(&self, len: usize) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.as_ptr().cast::<u8>(), len) }
-    }
-
-    pub unsafe fn as_cstr(&self) -> &CStr {
-        unsafe { CStr::from_ptr(self.as_ptr()) }
+    pub fn out_ptr(value: *mut Option<Malloced<T>>) -> *mut *mut T {
+        value as _
     }
 }
 

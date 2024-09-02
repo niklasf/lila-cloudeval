@@ -5,11 +5,13 @@ use std::{
 };
 
 use terarkdb_sys::{
-    rocksdb_close, rocksdb_get_pinned, rocksdb_open, rocksdb_open_for_read_only, rocksdb_t,
+    rocksdb_close, rocksdb_get_pinned, rocksdb_multi_get, rocksdb_open, rocksdb_open_for_read_only,
+    rocksdb_t,
 };
 
 use crate::{
-    error::Error, options::Options, pinnable_slice::PinnableSlice, read_options::ReadOptions,
+    error::Error, multi_get::MultiGet, options::Options, pinnable_slice::PinnableSlice,
+    read_options::ReadOptions, util::Malloced,
 };
 
 fn cpath(path: &Path) -> CString {
@@ -102,14 +104,38 @@ impl Db {
         error.map_or(Ok(maybe_slice), Err)
     }
 
-    /* pub fn multi_get_opt<K, I>(keys: I) -> Result<MultiGet, Error>
-    where
-        K: AsRef<[u8]>,
-        I: IntoIterator<Item = K>,
-    {
-        let multi_get = MultiGet::new();
-        Ok(multi_get)
-    } */
+    pub fn multi_get<K: AsRef<[u8]>>(&self, keys: &[K]) -> MultiGet {
+        self.multi_get_opt(keys, &ReadOptions::default())
+    }
+
+    pub fn multi_get_opt<K: AsRef<[u8]>>(
+        &self,
+        keys: &[K],
+        read_options: &ReadOptions,
+    ) -> MultiGet {
+        let (key_ptrs, key_lens): (Vec<*const c_char>, Vec<usize>) = keys
+            .iter()
+            .map(|k| {
+                let key = k.as_ref();
+                (key.as_ptr().cast::<c_char>(), key.len())
+            })
+            .unzip();
+
+        let mut multi_get = MultiGet::new(keys.len());
+        unsafe {
+            rocksdb_multi_get(
+                self.as_mut_ptr(),
+                read_options.as_ptr(),
+                keys.len(),
+                key_ptrs.as_ptr(),
+                key_lens.as_ptr(),
+                Malloced::out_ptr(multi_get.values.as_mut_ptr()),
+                multi_get.lens.as_mut_ptr(),
+                Error::out_ptr(multi_get.errors.as_mut_ptr()),
+            );
+        }
+        multi_get
+    }
 
     pub(crate) fn as_mut_ptr(&self) -> *mut rocksdb_t {
         self.inner.as_ptr()
