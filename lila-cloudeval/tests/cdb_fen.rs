@@ -1,4 +1,4 @@
-use cdbdirect::cdb_fen::cdb_fen;
+use lila_cloudeval::cdb_fen::cdb_fen;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use shakmaty::{fen::Fen, CastlingMode, Chess};

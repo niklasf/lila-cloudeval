@@ -34,3 +34,22 @@ impl Error {
         error as _
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::mem;
+
+    #[test]
+    fn test_error_repr() {
+        assert_eq!(
+            mem::size_of::<Option<Error>>(),
+            mem::size_of::<*mut c_char>()
+        );
+
+        assert_eq!(
+            mem::align_of::<Option<Error>>(),
+            mem::align_of::<*mut c_char>()
+        );
+    }
+}

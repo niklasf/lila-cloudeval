@@ -35,3 +35,23 @@ impl<T> Drop for Malloced<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::c_char;
+    use std::mem;
+
+    #[test]
+    fn test_malloced_repr() {
+        assert_eq!(
+            mem::size_of::<Option<Malloced<c_char>>>(),
+            mem::size_of::<*mut c_char>()
+        );
+
+        assert_eq!(
+            mem::align_of::<Option<Malloced<c_char>>>(),
+            mem::align_of::<*mut c_char>()
+        );
+    }
+}
