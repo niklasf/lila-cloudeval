@@ -77,18 +77,15 @@ impl Db {
         )
     }
 
-    pub fn get<'db, K: AsRef<[u8]>>(
-        &'db self,
-        key: K,
-    ) -> Result<Option<PinnableSlice<'db>>, Error> {
+    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<PinnableSlice<'_>>, Error> {
         self.get_opt(key, &ReadOptions::default())
     }
 
-    pub fn get_opt<'db, K: AsRef<[u8]>>(
-        &'db self,
+    pub fn get_opt<K: AsRef<[u8]>>(
+        &self,
         key: K,
         read_options: &ReadOptions,
-    ) -> Result<Option<PinnableSlice<'db>>, Error> {
+    ) -> Result<Option<PinnableSlice<'_>>, Error> {
         let key = key.as_ref();
         let mut error = None;
         let maybe_slice = unsafe {
