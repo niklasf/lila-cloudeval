@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 while let Ok(line) = rx.recv() {
                     let setup = line.parse::<Fen>().unwrap().into_setup();
 
-                    if let Some(mut scored_moves) = database.get_blocking(setup).unwrap() {
+                    if let Some(scored_moves) = database.get_blocking(setup).unwrap() {
                         found.fetch_add(1, Ordering::Relaxed);
 
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);
@@ -67,7 +67,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                             found_ply_from_root.fetch_add(1, Ordering::Relaxed);
                         }
 
-                        scored_moves.sort_by_score(scored_moves.len());
                         black_box(&scored_moves);
                         // println!("{line}: {scored_moves:?}");
                     } else {

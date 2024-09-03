@@ -49,25 +49,14 @@ impl Database {
     }
 
     pub fn get_blocking(&self, setup: Setup) -> Result<Option<ScoredMoves>, DbError> {
-        let bin_fen = cdb_fen(&setup);
-        let bin_fen_mirrored = cdb_fen(&setup.into_mirrored());
-        let natural_order = bin_fen.as_bytes() < bin_fen_mirrored.as_bytes();
+        let (key, natural_order) = cdb_fen(&setup);
 
-        let maybe_value = self.inner.get_pinned(match natural_order {
-            true => bin_fen.as_bytes(),
-            false => bin_fen_mirrored.as_bytes(),
-        })?;
-
-        let Some(value) = maybe_value else {
+        let Some(value) = self.inner.get_pinned(key.as_bytes())? else {
             return Ok(None);
         };
 
-        let mut scored_moves = ScoredMoves::read_cdb(&mut &value[..]);
-
-        if !natural_order {
-            scored_moves.mirror();
-        }
-
+        let mut scored_moves = ScoredMoves::read_cdb(&mut &value[..], natural_order);
+        scored_moves.sort_by_score();
         Ok(Some(scored_moves))
     }
 
@@ -89,13 +78,11 @@ impl Database {
                 break;
             }
 
-            let Some(mut scored_moves) =
+            let Some(scored_moves) =
                 self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?
             else {
                 break;
             };
-
-            scored_moves.sort_by_score(1);
 
             let Some((top_move, _)) = scored_moves.moves().first() else {
                 break;

@@ -18,6 +18,10 @@ impl Nibbles {
         }
     }
 
+    pub fn len(&self) -> usize {
+        2 * self.bytes.len() - usize::from(self.half)
+    }
+
     pub fn clear(&mut self) {
         self.bytes.clear();
         self.half = false;
@@ -84,13 +88,7 @@ fn push_piece(nibbles: &mut Nibbles, piece: Piece) {
     });
 }
 
-pub fn cdb_fen(setup: &Setup) -> Nibbles {
-    let mut nibbles = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
-    push_cdb_fen(&mut nibbles, setup);
-    nibbles
-}
-
-pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
+fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
     // Prefix
     nibbles.push_byte(b'h');
 
@@ -149,5 +147,24 @@ pub fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
     if let Some(ep_square) = setup.ep_square {
         nibbles.push_nibble(0x1 + u8::from(ep_square.file()));
         nibbles.push_nibble(0x1 + u8::from(ep_square.rank()));
+    }
+}
+
+pub enum NaturalOrder {
+    Same,
+    Mirror,
+}
+
+pub fn cdb_fen(setup: &Setup) -> (Nibbles, NaturalOrder) {
+    let mut nibbles = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
+    push_cdb_fen(&mut nibbles, setup);
+
+    let mut nibbles_mirrored = Nibbles::with_capacity(nibbles.len());
+    push_cdb_fen(&mut nibbles_mirrored, &setup.clone().into_mirrored());
+
+    if nibbles.as_bytes() < nibbles_mirrored.as_bytes() {
+        (nibbles, NaturalOrder::Same)
+    } else {
+        (nibbles_mirrored, NaturalOrder::Mirror)
     }
 }

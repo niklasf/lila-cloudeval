@@ -1,7 +1,7 @@
-use std::cmp::min;
+use crate::cdb_fen::NaturalOrder;
+use std::cmp::Reverse;
 
 use bytes::Buf;
-use partial_sort::partial_sort;
 use shakmaty::{uci::UciMove, File, Rank, Role, Square};
 use File::*;
 use Rank::*;
@@ -73,24 +73,17 @@ impl ScoredMoves {
         self.ply_from_root = None;
     }
 
-    pub fn mirror(&mut self) {
-        for (uci, _score) in &mut self.moves {
-            *uci = uci.to_mirrored();
-        }
+    pub fn sort_by_score(&mut self) {
+        self.moves.sort_by_key(|&(_, score)| Reverse(score));
     }
 
-    pub fn sort_by_score(&mut self, pvs: usize) {
-        let pvs = min(self.moves.len(), pvs);
-        partial_sort(&mut self.moves, pvs, |&(_, left), &(_, right)| left < right);
-    }
-
-    pub fn read_cdb<B: Buf>(buf: &mut B) -> ScoredMoves {
+    pub fn read_cdb<B: Buf>(buf: &mut B, natural_order: NaturalOrder) -> ScoredMoves {
         let mut res = ScoredMoves::with_capacity(buf.remaining() / 4);
-        res.extend_from_cdb(buf);
+        res.extend_from_cdb(buf, natural_order);
         res
     }
 
-    pub fn extend_from_cdb<B: Buf>(&mut self, buf: &mut B) {
+    pub fn extend_from_cdb<B: Buf>(&mut self, buf: &mut B, natural_order: NaturalOrder) {
         while buf.has_remaining() {
             let dst = usize::from(buf.get_u8());
             let src = usize::from(buf.get_u8());
@@ -132,7 +125,13 @@ impl ScoredMoves {
                 }
             };
 
-            self.moves.push((uci, score));
+            self.moves.push((
+                match natural_order {
+                    NaturalOrder::Same => uci,
+                    NaturalOrder::Mirror => uci.to_mirrored(),
+                },
+                score.checked_neg().expect("negated score"),
+            ));
         }
     }
 }

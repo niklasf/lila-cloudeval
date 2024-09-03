@@ -15,8 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let database = Database::open_read_only_blocking(&opt.db)?;
 
-    let mut root = database.get_blocking(Setup::default())?.unwrap();
-    root.sort_by_score(root.len());
+    let root = database.get_blocking(Setup::default())?.unwrap();
 
     for (uci, score) in root.moves() {
         println!("{uci}: {score}")

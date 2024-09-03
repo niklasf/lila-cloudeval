@@ -2,6 +2,7 @@ use lila_cloudeval::cdb_fen::cdb_fen;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use shakmaty::{fen::Fen, CastlingMode, Chess};
+use std::cmp::min;
 
 #[serde_as]
 #[derive(Deserialize)]
@@ -27,29 +28,12 @@ fn test_cdb_fen() {
             continue;
         }
 
-        let bin_fen = cdb_fen(record.fen.as_setup());
-        let bin_fen_bw = cdb_fen(&record.fen.as_setup().clone().into_mirrored());
+        let (bin_fen, _) = cdb_fen(record.fen.as_setup());
 
         assert_eq!(
             hex::encode(&bin_fen.as_bytes()[1..]),
-            record.cdb_fen,
+            min(record.cdb_fen, record.cdb_fen_bw),
             "line {}: cdb_fen mismatch for {}",
-            i + 2,
-            record.fen
-        );
-
-        assert_eq!(
-            hex::encode(&bin_fen_bw.as_bytes()[1..]),
-            record.cdb_fen_bw,
-            "line {}: cdb_fen_bw mismatch for {}",
-            i + 2,
-            record.fen
-        );
-
-        assert_eq!(
-            bin_fen.as_bytes() < bin_fen_bw.as_bytes(),
-            record.cdb_fen < record.cdb_fen_bw,
-            "line {}: natural order mismatch for {}",
             i + 2,
             record.fen
         );
