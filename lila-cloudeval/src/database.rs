@@ -69,6 +69,12 @@ impl Database {
 
         let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();
 
+        let Some(mut scored_moves) =
+            self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?
+        else {
+            return Ok(pv);
+        };
+
         loop {
             if pv.len() >= max_length {
                 break;
@@ -78,54 +84,52 @@ impl Database {
                 break;
             }
 
-            let Some(scored_moves) =
-                self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?
+            let best_moves = scored_moves.best_moves();
+
+            let (keys, natural_orders): (Vec<_>, Vec<_>) = best_moves
+                .iter()
+                .map(|entry| {
+                    let mut child = pos.clone();
+                    let m = entry.uci.to_move(&child).unwrap();
+                    child.play_unchecked(&m);
+                    cdb_fen(&child.into_setup(EnPassantMode::Legal))
+                })
+                .unzip();
+
+            let scored_child_moves: Vec<(Option<ScoredMoves>, UciMove)> = self
+                .inner
+                .multi_get(&keys)
+                .into_iter()
+                .zip(natural_orders)
+                .zip(best_moves)
+                .map(|((row, natural_order), entry)| match row {
+                    Ok(Some(value)) => Ok((
+                        Some(ScoredMoves::read_cdb(&mut &value[..], natural_order)),
+                        entry.uci.clone(),
+                    )),
+                    Ok(None) => Ok((None, entry.uci.clone())),
+                    Err(err) => Err(err),
+                })
+                .collect::<Result<_, _>>()?;
+
+            let Some((maybe_top_scored_moves, top_uci)) = scored_child_moves
+                .into_iter()
+                .min_by_key(|(scored_moves, _)| {
+                    scored_moves.as_ref().map_or(0, |s| s.num_good_moves())
+                })
             else {
                 break;
             };
 
-            let best_moves = scored_moves.best_moves();
-            if best_moves.is_empty() {
+            let m = top_uci.to_move(&pos).unwrap();
+            pv.push(UciMove::from_chess960(&m));
+
+            let Some(top_scored_moves) = maybe_top_scored_moves else {
                 break;
-            }
-
-            let top_move = if best_moves.len() == 1 {
-                best_moves[0].uci.clone()
-            } else {
-                let (keys, natural_orders): (Vec<_>, Vec<_>) = best_moves
-                    .iter()
-                    .map(|entry| {
-                        let mut child = pos.clone();
-                        let m = entry.uci.to_move(&child).unwrap();
-                        child.play_unchecked(&m);
-                        cdb_fen(&child.into_setup(EnPassantMode::Legal))
-                    })
-                    .unzip();
-
-                let values = self.inner.multi_get(&keys);
-
-                best_moves
-                    .into_iter()
-                    .zip(values.into_iter().zip(natural_orders))
-                    .min_by_key(|(_entry, (maybe_value, natural_order))| {
-                        let Some(value) = maybe_value.as_ref().unwrap() else {
-                            return 0;
-                        };
-                        let scored_child_moves =
-                            ScoredMoves::read_cdb(&mut &value[..], *natural_order);
-                        let n = scored_child_moves.num_good_moves();
-                        println!("- {} ({})", _entry.uci, n);
-                        n
-                    })
-                    .unwrap()
-                    .0
-                    .uci
-                    .clone()
             };
 
-            let m = top_move.to_move(&pos).unwrap();
-            pv.push(UciMove::from_chess960(&m));
             pos.play_unchecked(&m);
+            scored_moves = top_scored_moves;
         }
 
         Ok(pv)
