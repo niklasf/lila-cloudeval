@@ -1,5 +1,6 @@
-use shakmaty::{Color, File, Piece, Rank, Role, Setup};
 use std::ops::Deref;
+
+use shakmaty::{Color, File, Piece, Rank, Role, Setup};
 
 #[derive(Default, Debug)]
 pub struct Nibbles {
@@ -17,6 +18,10 @@ impl Nibbles {
             bytes: Vec::with_capacity((nibbles + 1) / 2),
             half: false,
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bytes.is_empty()
     }
 
     pub fn len(&self) -> usize {

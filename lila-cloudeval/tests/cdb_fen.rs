@@ -1,8 +1,9 @@
+use std::cmp::min;
+
 use lila_cloudeval::cdb_fen::cdb_fen;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
 use shakmaty::{fen::Fen, CastlingMode, Chess};
-use std::cmp::min;
 
 #[serde_as]
 #[derive(Deserialize)]

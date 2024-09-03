@@ -7,8 +7,10 @@ use shakmaty::{
 };
 use terarkdb::{BlockBasedTableOptions, Cache, Db, Error as DbError, LogFile, Options};
 
-use crate::cdb_moves::SortedScoredMoves;
-use crate::{cdb_fen::cdb_fen, cdb_moves::ScoredMoves};
+use crate::{
+    cdb_fen::cdb_fen,
+    cdb_moves::{ScoredMoves, SortedScoredMoves},
+};
 
 #[derive(Debug, clap::Parser)]
 pub struct DatabaseOpt {

@@ -1,8 +1,10 @@
 use std::error::Error;
 
 use clap::Parser as _;
-use lila_cloudeval::cdb_moves::ScoredMove;
-use lila_cloudeval::database::{Database, DatabaseOpt};
+use lila_cloudeval::{
+    cdb_moves::ScoredMove,
+    database::{Database, DatabaseOpt},
+};
 use shakmaty::{Chess, Setup};
 
 #[derive(Debug, clap::Parser)]

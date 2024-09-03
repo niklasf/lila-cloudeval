@@ -1,10 +1,11 @@
-use crate::cdb_fen::NaturalOrder;
 use std::cmp::Reverse;
 
 use bytes::Buf;
 use shakmaty::{uci::UciMove, File, Rank, Role, Square};
 use File::*;
 use Rank::*;
+
+use crate::cdb_fen::NaturalOrder;
 
 #[rustfmt::skip]
 const DEC_FILE: [Option<File>; 90] = [
@@ -147,7 +148,7 @@ impl ScoredMoves {
     }
 }
 
-pub struct SortedScoredMoves(ScoredMoves);
+pub struct SortedScoredMoves(pub ScoredMoves);
 
 impl SortedScoredMoves {
     pub fn moves(&self) -> &[ScoredMove] {

@@ -16,7 +16,10 @@ use std::{
 };
 
 use clap::Parser as _;
-use lila_cloudeval::database::{Database, DatabaseOpt};
+use lila_cloudeval::{
+    cdb_moves::SortedScoredMoves,
+    database::{Database, DatabaseOpt},
+};
 use shakmaty::fen::Fen;
 
 #[derive(Debug, clap::Parser)]
@@ -59,7 +62,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 while let Ok(line) = rx.recv() {
                     let setup = line.parse::<Fen>().unwrap().into_setup();
 
-                    if let Some(scored_moves) = database.get_blocking(setup).unwrap() {
+                    if let Some(SortedScoredMoves(scored_moves)) =
+                        database.get_blocking(setup).unwrap()
+                    {
                         found.fetch_add(1, Ordering::Relaxed);
 
                         total_moves.fetch_add(scored_moves.len() as u64, Ordering::Relaxed);

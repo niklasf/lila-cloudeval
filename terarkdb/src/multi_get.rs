@@ -41,7 +41,7 @@ impl IntoIterator for MultiGet {
             raw: self
                 .errors
                 .into_iter()
-                .zip(self.values.into_iter().zip(self.lens.into_iter())),
+                .zip(self.values.into_iter().zip(self.lens)),
         }
     }
 }
