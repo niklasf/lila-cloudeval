@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use clap::Parser as _;
+use lila_cloudeval::cdb_moves::ScoredMove;
 use lila_cloudeval::database::{Database, DatabaseOpt};
 use shakmaty::{Chess, Setup};
 
@@ -17,7 +18,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let root = database.get_blocking(Setup::default())?.unwrap();
 
-    for (uci, score) in root.moves() {
+    for ScoredMove { uci, score } in root.moves() {
         println!("{uci}: {score}")
     }
 

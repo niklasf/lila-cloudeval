@@ -34,9 +34,15 @@ const DEC_RANK: [Option<Rank>; 90] = [
     None,          None,          None,          None,          None,          None,          None,          None,          None,
 ];
 
+#[derive(Debug)]
+pub struct ScoredMove {
+    pub uci: UciMove,
+    pub score: i16,
+}
+
 #[derive(Default, Debug)]
 pub struct ScoredMoves {
-    moves: Vec<(UciMove, i16)>,
+    moves: Vec<ScoredMove>,
     ply_from_root: Option<u32>,
 }
 
@@ -64,8 +70,19 @@ impl ScoredMoves {
         self.ply_from_root
     }
 
-    pub fn moves(&self) -> &[(UciMove, i16)] {
+    pub fn moves(&self) -> &[ScoredMove] {
         &self.moves
+    }
+
+    pub fn best_moves(&self) -> &[ScoredMove] {
+        self.moves
+            .chunk_by(|left, right| left.score == right.score)
+            .next()
+            .unwrap_or(&[])
+    }
+
+    pub fn num_good_moves(&self) -> usize {
+        self.moves.iter().filter(|entry| entry.score >= 0).count()
     }
 
     pub fn clear(&mut self) {
@@ -74,7 +91,7 @@ impl ScoredMoves {
     }
 
     pub fn sort_by_score(&mut self) {
-        self.moves.sort_by_key(|&(_, score)| Reverse(score));
+        self.moves.sort_by_key(|entry| Reverse(entry.score))
     }
 
     pub fn read_cdb<B: Buf>(buf: &mut B, natural_order: NaturalOrder) -> ScoredMoves {
@@ -125,13 +142,13 @@ impl ScoredMoves {
                 }
             };
 
-            self.moves.push((
-                match natural_order {
+            self.moves.push(ScoredMove {
+                uci: match natural_order {
                     NaturalOrder::Same => uci,
                     NaturalOrder::Mirror => uci.to_mirrored(),
                 },
-                score.checked_neg().expect("negated score"),
-            ));
+                score: score.checked_neg().expect("negated score"),
+            });
         }
     }
 }

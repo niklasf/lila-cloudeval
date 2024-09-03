@@ -84,8 +84,43 @@ impl Database {
                 break;
             };
 
-            let Some((top_move, _)) = scored_moves.moves().first() else {
+            let best_moves = scored_moves.best_moves();
+            if best_moves.is_empty() {
                 break;
+            }
+
+            let top_move = if best_moves.len() == 1 {
+                best_moves[0].uci.clone()
+            } else {
+                let (keys, natural_orders): (Vec<_>, Vec<_>) = best_moves
+                    .iter()
+                    .map(|entry| {
+                        let mut child = pos.clone();
+                        let m = entry.uci.to_move(&child).unwrap();
+                        child.play_unchecked(&m);
+                        cdb_fen(&child.into_setup(EnPassantMode::Legal))
+                    })
+                    .unzip();
+
+                let values = self.inner.multi_get(&keys);
+
+                best_moves
+                    .into_iter()
+                    .zip(values.into_iter().zip(natural_orders))
+                    .min_by_key(|(_entry, (maybe_value, natural_order))| {
+                        let Some(value) = maybe_value.as_ref().unwrap() else {
+                            return 0;
+                        };
+                        let scored_child_moves =
+                            ScoredMoves::read_cdb(&mut &value[..], *natural_order);
+                        let n = scored_child_moves.num_good_moves();
+                        println!("- {} ({})", _entry.uci, n);
+                        n
+                    })
+                    .unwrap()
+                    .0
+                    .uci
+                    .clone()
             };
 
             let m = top_move.to_move(&pos).unwrap();

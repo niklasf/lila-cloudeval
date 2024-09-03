@@ -1,4 +1,5 @@
 use shakmaty::{Color, File, Piece, Rank, Role, Setup};
+use std::ops::Deref;
 
 #[derive(Default, Debug)]
 pub struct Nibbles {
@@ -53,6 +54,20 @@ impl Nibbles {
 
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes
+    }
+}
+
+impl AsRef<[u8]> for Nibbles {
+    fn as_ref(&self) -> &[u8] {
+        self
+    }
+}
+
+impl Deref for Nibbles {
+    type Target = [u8];
+
+    fn deref(&self) -> &[u8] {
+        self.as_bytes()
     }
 }
 
@@ -150,6 +165,7 @@ fn push_cdb_fen(nibbles: &mut Nibbles, setup: &Setup) {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub enum NaturalOrder {
     Same,
     Mirror,
