@@ -7,6 +7,7 @@ use shakmaty::{
 };
 use terarkdb::{BlockBasedTableOptions, Cache, Db, Error as DbError, LogFile, Options};
 
+use crate::cdb_moves::SortedScoredMoves;
 use crate::{cdb_fen::cdb_fen, cdb_moves::ScoredMoves};
 
 #[derive(Debug, clap::Parser)]
@@ -48,16 +49,13 @@ impl Database {
         })
     }
 
-    pub fn get_blocking(&self, setup: Setup) -> Result<Option<ScoredMoves>, DbError> {
+    pub fn get_blocking(&self, setup: Setup) -> Result<Option<SortedScoredMoves>, DbError> {
         let (key, natural_order) = cdb_fen(&setup);
 
-        let Some(value) = self.inner.get_pinned(key.as_bytes())? else {
-            return Ok(None);
-        };
-
-        let mut scored_moves = ScoredMoves::read_cdb(&mut &value[..], natural_order);
-        scored_moves.sort_by_score();
-        Ok(Some(scored_moves))
+        Ok(self
+            .inner
+            .get_pinned(key.as_bytes())?
+            .map(|value| ScoredMoves::read_cdb(&mut &value[..], natural_order).into_sorted()))
     }
 
     pub fn get_pv_blocking(
@@ -69,13 +67,14 @@ impl Database {
 
         let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();
 
-        let Some(mut scored_moves) =
-            self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?
-        else {
-            return Ok(pv);
-        };
+        let mut maybe_scored_moves =
+            self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?;
 
         loop {
+            let Some(scored_moves) = maybe_scored_moves else {
+                break;
+            };
+
             if pv.len() >= max_length {
                 break;
             }
@@ -123,13 +122,8 @@ impl Database {
 
             let m = top_uci.to_move(&pos).unwrap();
             pv.push(UciMove::from_chess960(&m));
-
-            let Some(top_scored_moves) = maybe_top_scored_moves else {
-                break;
-            };
-
             pos.play_unchecked(&m);
-            scored_moves = top_scored_moves;
+            maybe_scored_moves = maybe_top_scored_moves.map(ScoredMoves::into_sorted);
         }
 
         Ok(pv)

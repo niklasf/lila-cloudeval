@@ -74,13 +74,6 @@ impl ScoredMoves {
         &self.moves
     }
 
-    pub fn best_moves(&self) -> &[ScoredMove] {
-        self.moves
-            .chunk_by(|left, right| left.score == right.score)
-            .next()
-            .unwrap_or(&[])
-    }
-
     pub fn num_good_moves(&self) -> usize {
         self.moves.iter().filter(|entry| entry.score >= 0).count()
     }
@@ -90,8 +83,9 @@ impl ScoredMoves {
         self.ply_from_root = None;
     }
 
-    pub fn sort_by_score(&mut self) {
-        self.moves.sort_by_key(|entry| Reverse(entry.score))
+    pub fn into_sorted(mut self) -> SortedScoredMoves {
+        self.moves.sort_by_key(|entry| Reverse(entry.score));
+        SortedScoredMoves(self)
     }
 
     pub fn read_cdb<B: Buf>(buf: &mut B, natural_order: NaturalOrder) -> ScoredMoves {
@@ -150,5 +144,20 @@ impl ScoredMoves {
                 score: score.checked_neg().expect("negated score"),
             });
         }
+    }
+}
+
+pub struct SortedScoredMoves(ScoredMoves);
+
+impl SortedScoredMoves {
+    pub fn moves(&self) -> &[ScoredMove] {
+        self.0.moves()
+    }
+
+    pub fn best_moves(&self) -> &[ScoredMove] {
+        self.moves()
+            .chunk_by(|left, right| left.score == right.score)
+            .next()
+            .unwrap_or(&[])
     }
 }
