@@ -37,6 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let oks = AtomicU64::new(0);
     let bad_requests = AtomicU64::new(0);
     let others = AtomicU64::new(0);
+    let before_all = Instant::now();
 
     // With RAYON_NUM_THREADS
     fens.par_iter().for_each(|fen| {
@@ -59,6 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{}\t{}", fen, before.elapsed().as_millis());
     });
 
+    eprintln!("total elapsed: {:.3?}", before_all.elapsed());
     eprintln!("ok: {}", oks.load(Ordering::Relaxed));
     eprintln!("bad requests: {}", bad_requests.load(Ordering::Relaxed));
     eprintln!("others: {}", others.load(Ordering::Relaxed));
