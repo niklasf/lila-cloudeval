@@ -60,11 +60,7 @@ impl Database {
             .map(|value| ScoredMoves::read_cdb(&mut &value[..], natural_order).into_sorted()))
     }
 
-    pub fn get_pv_blocking(
-        &self,
-        mut pos: Chess,
-        max_length: usize,
-    ) -> Result<Vec<UciMove>, DbError> {
+    pub fn get_pv_blocking(&self, mut pos: Chess) -> Result<Vec<UciMove>, DbError> {
         let mut pv = Vec::new();
 
         let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();
@@ -77,9 +73,9 @@ impl Database {
                 break;
             };
 
-            if pv.len() >= max_length {
-                break;
-            }
+            //if pv.len() >= max_length {
+            //    break;
+            //}
 
             if !seen_hashes.insert(pos.zobrist_hash(EnPassantMode::Legal)) {
                 break;

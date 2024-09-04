@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("---");
 
-    let pv = database.get_pv_blocking(Chess::default(), usize::MAX)?;
+    let pv = database.get_pv_blocking(Chess::default())?;
 
     for uci in pv {
         println!("{uci}");
