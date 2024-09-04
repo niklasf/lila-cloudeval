@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "lila-cloudeval",
+    "lila-cloudeval-bench",
     "terarkdb",
     "terarkdb-sys",
 ]
