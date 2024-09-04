@@ -5,14 +5,14 @@ use serde_with::{formats::SpaceSeparator, serde_as, StringWithSeparator};
 use shakmaty::{
     uci::UciMove,
     zobrist::{Zobrist64, ZobristHash},
-    Chess, EnPassantMode, Position, Setup,
+    Chess, Color, EnPassantMode, Position, Setup,
 };
 use terarkdb::{BlockBasedTableOptions, Cache, Db, Error as DbError, LogFile, Options};
 use tokio::{task, task::JoinHandle};
 
 use crate::{
     cdb_fen::cdb_fen,
-    cdb_moves::{ScoredMoves, SortedScoredMoves},
+    cdb_moves::{RelativeScore, ScoredMoves, SortedScoredMoves},
 };
 
 #[derive(Debug, clap::Parser)]
@@ -36,17 +36,26 @@ impl DatabaseOpt {
     }
 }
 
+#[derive(Serialize)]
+pub struct WhiteScore(pub i16);
+
+impl WhiteScore {
+    fn from_relative(RelativeScore(cp): RelativeScore, turn: Color) -> WhiteScore {
+        WhiteScore(turn.fold_wb(cp, -cp))
+    }
+}
+
 #[serde_as]
 #[derive(Serialize)]
 pub struct Pv {
-    score: i16,
+    cp: WhiteScore,
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, UciMove>")]
-    line: Vec<UciMove>,
+    moves: Vec<UciMove>,
 }
 
 struct TiebrokenMove {
     uci: UciMove,
-    score: i16,
+    score: RelativeScore,
     scored_child_moves: Option<ScoredMoves>,
 }
 
@@ -185,7 +194,7 @@ impl Database {
     }
 
     fn extend_pv_blocking(&self, mut pos: Chess, begin: TiebrokenMove) -> Result<Pv, DbError> {
-        let score = begin.score;
+        let score = WhiteScore::from_relative(begin.score, pos.turn());
         let mut line = vec![];
 
         let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();
@@ -217,6 +226,9 @@ impl Database {
                 .min_by_key(TiebrokenMove::sort_key);
         }
 
-        Ok(Pv { line, score })
+        Ok(Pv {
+            moves: line,
+            cp: score,
+        })
     }
 }

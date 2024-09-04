@@ -35,10 +35,13 @@ const DEC_RANK: [Option<Rank>; 90] = [
     None,          None,          None,          None,          None,          None,          None,          None,          None,
 ];
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+pub struct RelativeScore(pub i16);
+
 #[derive(Debug)]
 pub struct ScoredMove {
     pub uci: UciMove,
-    pub score: i16,
+    pub score: RelativeScore,
 }
 
 #[derive(Default, Debug)]
@@ -76,7 +79,10 @@ impl ScoredMoves {
     }
 
     pub fn num_good_moves(&self) -> usize {
-        self.moves.iter().filter(|entry| entry.score >= 0).count()
+        self.moves
+            .iter()
+            .filter(|entry| entry.score >= RelativeScore(0))
+            .count()
     }
 
     pub fn clear(&mut self) {
@@ -142,7 +148,7 @@ impl ScoredMoves {
                     NaturalOrder::Same => uci,
                     NaturalOrder::Mirror => uci.to_mirrored(),
                 },
-                score: score.checked_neg().expect("negated score"),
+                score: RelativeScore(score.checked_neg().expect("negated score")),
             });
         }
     }
@@ -174,7 +180,7 @@ impl SortedScoredMoves {
             let min_score = self
                 .moves()
                 .get(at_least - 1)
-                .map_or(i16::MIN, |entry| entry.score);
+                .map_or(RelativeScore(i16::MIN), |entry| entry.score);
 
             self.0
                 .moves

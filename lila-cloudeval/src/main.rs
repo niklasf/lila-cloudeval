@@ -98,3 +98,6 @@ async fn query_pv(
             .await?,
     }))
 }
+
+// In: {"t":"evalGet","d":{"fen":"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3","path":"/?WG)8\\M(D","mpv":2}}
+// Out: {"t":"evalHit","d":{"fen":"r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3","knodes":7298073,"depth":51,"pvs":[{"moves":"g8f6 d2d3 f8c5 b5a4 d7d6 c2c3 e8h8 e1h1 c5b6 b1d2","cp":13},{"moves":"a7a6 b5a4 g8f6 e1h1 f8e7 f1e1 b7b5 a4b3 e8h8 a2a4","cp":20}],"path":"/?WG)8\\M(D"}}
