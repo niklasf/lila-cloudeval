@@ -12,6 +12,8 @@ pub enum Error {
     DbError(#[from] DbError),
     #[error("bad request: {0}")]
     PositionError(#[from] PositionError<Chess>),
+    #[error("bad request: requested {n} pvs, but only 5 allowed")]
+    MultiPvRange { n: usize },
 }
 
 impl IntoResponse for Error {
@@ -19,7 +21,7 @@ impl IntoResponse for Error {
         (
             match self {
                 Error::DbError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                Error::PositionError(_) => StatusCode::BAD_REQUEST,
+                Error::PositionError(_) | Error::MultiPvRange { .. } => StatusCode::BAD_REQUEST,
             },
             self.to_string(),
         )

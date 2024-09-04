@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf, sync::Arc};
 
 use shakmaty::{
     uci::UciMove,
@@ -6,6 +6,7 @@ use shakmaty::{
     Chess, EnPassantMode, Position, Setup,
 };
 use terarkdb::{BlockBasedTableOptions, Cache, Db, Error as DbError, LogFile, Options};
+use tokio::task;
 
 use crate::{
     cdb_fen::cdb_fen,
@@ -60,7 +61,13 @@ impl Database {
             .map(|value| ScoredMoves::read_cdb(&mut &value[..], natural_order).into_sorted()))
     }
 
-    pub fn get_pv_blocking(&self, mut pos: Chess) -> Result<Vec<UciMove>, DbError> {
+    pub async fn get_pv(self: Arc<Self>, pos: Chess) -> Result<Vec<UciMove>, DbError> {
+        task::spawn_blocking(move || self.get_pv_blocking(pos))
+            .await
+            .expect("get pv blocking")
+    }
+
+    fn get_pv_blocking(&self, mut pos: Chess) -> Result<Vec<UciMove>, DbError> {
         let mut pv = Vec::new();
 
         let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();

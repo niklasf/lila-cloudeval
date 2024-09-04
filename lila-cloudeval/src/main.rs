@@ -11,7 +11,7 @@ use lila_cloudeval::{
     error::Error,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{serde_as, DisplayFromStr, TryFromInto};
 use shakmaty::{fen::Fen, uci::UciMove, CastlingMode};
 use tokio::net::TcpListener;
 
@@ -42,11 +42,41 @@ async fn main() {
     axum::serve(listener, app).await.expect("serve");
 }
 
+#[derive(Copy, Clone, Debug)]
+struct MultiPv(usize);
+
+impl Default for MultiPv {
+    fn default() -> MultiPv {
+        MultiPv(1)
+    }
+}
+
+impl From<MultiPv> for usize {
+    fn from(MultiPv(n): MultiPv) -> usize {
+        n
+    }
+}
+
+impl TryFrom<usize> for MultiPv {
+    type Error = Error;
+
+    fn try_from(n: usize) -> Result<MultiPv, Error> {
+        if n > 5 {
+            Err(Error::MultiPvRange { n })
+        } else {
+            Ok(MultiPv(n))
+        }
+    }
+}
+
 #[serde_as]
 #[derive(Deserialize)]
 struct PvQuery {
     #[serde_as(as = "DisplayFromStr")]
     fen: Fen,
+    #[serde_as(as = "TryFromInto<usize>")]
+    #[serde(default)]
+    multi_pv: MultiPv,
 }
 
 #[serde_as]
@@ -62,6 +92,9 @@ async fn query_pv(
     Query(pv_query): Query<PvQuery>,
 ) -> Result<Json<PvResponse>, Error> {
     Ok(Json(PvResponse {
-        pvs: vec![db.get_pv_blocking(pv_query.fen.into_position(CastlingMode::Chess960)?)?],
+        pvs: vec![
+            db.get_pv(pv_query.fen.into_position(CastlingMode::Chess960)?)
+                .await?,
+        ],
     }))
 }
