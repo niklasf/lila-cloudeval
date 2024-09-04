@@ -155,10 +155,37 @@ impl SortedScoredMoves {
         self.0.moves()
     }
 
-    pub fn best_moves(&self) -> &[ScoredMove] {
-        self.moves()
-            .chunk_by(|left, right| left.score == right.score)
-            .next()
-            .unwrap_or(&[])
+    pub fn into_moves(self) -> Vec<ScoredMove> {
+        self.0.moves
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn into_best_moves(self, at_least: usize) -> SortedScoredMoves {
+        let moves = if at_least < 1 {
+            vec![]
+        } else {
+            let min_score = self
+                .moves()
+                .get(at_least - 1)
+                .map_or(i16::MIN, |entry| entry.score);
+
+            self.0
+                .moves
+                .into_iter()
+                .take_while(|entry| entry.score >= min_score)
+                .collect()
+        };
+
+        SortedScoredMoves(ScoredMoves {
+            moves,
+            ply_from_root: self.0.ply_from_root,
+        })
     }
 }

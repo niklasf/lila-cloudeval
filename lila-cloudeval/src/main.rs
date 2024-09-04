@@ -7,12 +7,12 @@ use axum::{
 };
 use clap::Parser as _;
 use lila_cloudeval::{
-    database::{Database, DatabaseOpt},
+    database::{Database, DatabaseOpt, Pv},
     error::Error,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr, TryFromInto};
-use shakmaty::{fen::Fen, uci::UciMove, CastlingMode};
+use shakmaty::{fen::Fen, CastlingMode};
 use tokio::net::TcpListener;
 
 #[derive(Debug, clap::Parser)]
@@ -79,11 +79,9 @@ struct PvQuery {
     multi_pv: MultiPv,
 }
 
-#[serde_as]
 #[derive(Serialize)]
 struct PvResponse {
-    #[serde_as(as = "Vec<Vec<DisplayFromStr>>")]
-    pvs: Vec<Vec<UciMove>>,
+    pvs: Option<Vec<Pv>>,
 }
 
 #[axum::debug_handler(state = AppState)]
@@ -92,9 +90,11 @@ async fn query_pv(
     Query(pv_query): Query<PvQuery>,
 ) -> Result<Json<PvResponse>, Error> {
     Ok(Json(PvResponse {
-        pvs: vec![
-            db.get_pv(pv_query.fen.into_position(CastlingMode::Chess960)?)
-                .await?,
-        ],
+        pvs: db
+            .get_multi_pv(
+                pv_query.fen.into_position(CastlingMode::Chess960)?,
+                pv_query.multi_pv.into(),
+            )
+            .await?,
     }))
 }
