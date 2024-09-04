@@ -1,7 +1,7 @@
 use std::{cmp::Reverse, collections::HashSet, path::PathBuf, sync::Arc};
 
 use serde::Serialize;
-use serde_with::{serde_as, DisplayFromStr};
+use serde_with::{formats::SpaceSeparator, serde_as, StringWithSeparator};
 use shakmaty::{
     uci::UciMove,
     zobrist::{Zobrist64, ZobristHash},
@@ -40,7 +40,7 @@ impl DatabaseOpt {
 #[derive(Serialize)]
 pub struct Pv {
     score: i16,
-    #[serde_as(as = "Vec<DisplayFromStr>")]
+    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, UciMove>")]
     line: Vec<UciMove>,
 }
 
@@ -51,7 +51,7 @@ struct TiebrokenMove {
 }
 
 impl TiebrokenMove {
-    fn sort_key(&self) -> impl Ord + PartialOrd {
+    fn sort_key(&self) -> impl Ord {
         (
             Reverse(self.score),
             self.scored_child_moves
@@ -124,7 +124,7 @@ impl Database {
             return Ok(None); // Cannot satisfy number of requested pvs
         }
 
-        let mut tiebroken_moves = self.tiebreak_moves_blocking(&pos, root, multi_pv)?;
+        let mut tiebroken_moves = self.tiebreak_moves_blocking(pos, root, multi_pv)?;
         tiebroken_moves.sort_by_key(TiebrokenMove::sort_key);
         tiebroken_moves.truncate(multi_pv);
         Ok(Some(tiebroken_moves))
@@ -169,7 +169,7 @@ impl Database {
             .collect::<Result<_, _>>()
     }
 
-    fn get_blocking(&self, setup: Setup) -> Result<Option<SortedScoredMoves>, DbError> {
+    pub fn get_blocking(&self, setup: Setup) -> Result<Option<SortedScoredMoves>, DbError> {
         let (key, natural_order) = cdb_fen(&setup);
 
         Ok(self
@@ -187,29 +187,29 @@ impl Database {
     fn extend_pv_blocking(&self, mut pos: Chess, begin: TiebrokenMove) -> Result<Pv, DbError> {
         let score = begin.score;
         let mut line = vec![];
+
         let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();
+        seen_hashes.insert(pos.zobrist_hash(EnPassantMode::Legal));
+
         let mut maybe_top_move = Some(begin);
 
         loop {
-            //if pv.len() >= max_length {
-            //    break;
-            //}
-
-            if !seen_hashes.insert(pos.zobrist_hash(EnPassantMode::Legal)) {
-                break;
-            }
-
             let Some(top_move) = maybe_top_move else {
                 break;
             };
 
             let m = top_move.uci.to_move(&pos).expect("top move is legal");
             line.push(UciMove::from_chess960(&m));
-            pos.play_unchecked(&m);
 
             let Some(scored_moves) = top_move.scored_child_moves else {
                 break;
             };
+
+            pos.play_unchecked(&m);
+
+            if !seen_hashes.insert(pos.zobrist_hash(EnPassantMode::Legal)) {
+                break;
+            }
 
             maybe_top_move = self
                 .tiebreak_moves_blocking(&pos, scored_moves.into_sorted(), 1)?
