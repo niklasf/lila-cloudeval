@@ -180,7 +180,7 @@ pub fn cdb_fen(setup: &Setup) -> (Nibbles, NaturalOrder) {
     let mut nibbles = Nibbles::with_capacity(2 + 10 + 1 + 1 + 1);
     push_cdb_fen(&mut nibbles, setup);
 
-    let mut nibbles_mirrored = Nibbles::with_capacity(nibbles.len());
+    let mut nibbles_mirrored = Nibbles::with_capacity(nibbles.len() + 2);
     push_cdb_fen(&mut nibbles_mirrored, &setup.clone().into_mirrored());
 
     if nibbles.as_bytes() < nibbles_mirrored.as_bytes() {
