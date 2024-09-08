@@ -1,4 +1,4 @@
-use std::cmp::min;
+use std::{cmp::min, fs::File};
 
 use lila_cloudeval::cdb_fen::cdb_fen;
 use serde::Deserialize;
@@ -16,7 +16,14 @@ struct Record {
 
 #[test]
 fn test_cdb_fen() {
-    let mut reader = csv::Reader::from_path("tests/cdb_fen_all.csv").expect("reader");
+    let mut reader = csv::ReaderBuilder::new()
+        .has_headers(false)
+        .flexible(true)
+        .from_reader(
+            ruzstd::StreamingDecoder::new(File::open("tests/reference.csv.zst").expect("csv zst"))
+                .expect("zst"),
+        );
+
     for (i, record) in reader.deserialize().enumerate() {
         let record: Record = record.expect("record");
 
