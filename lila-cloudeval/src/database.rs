@@ -43,17 +43,12 @@ impl WhiteScore {
     fn from_relative(RelativeScore(cp): RelativeScore, turn: Color) -> WhiteScore {
         WhiteScore(turn.fold_wb(cp, -cp))
     }
-
-    fn relative(self, turn: Color) -> RelativeScore {
-        RelativeScore(turn.fold_wb(self.0, -self.0))
-    }
 }
 
 #[serde_as]
 #[derive(Serialize)]
 pub struct Pv {
     cp: WhiteScore,
-    leaf_cp: WhiteScore,
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, UciMove>")]
     moves: Vec<UciMove>,
 }
@@ -61,7 +56,6 @@ pub struct Pv {
 struct TiebrokenMove {
     uci: UciMove,
     score: RelativeScore,
-    leaf_score: RelativeScore,
     scored_child_moves: Option<ScoredMoves>,
 }
 
@@ -69,7 +63,6 @@ impl TiebrokenMove {
     fn sort_key(&self) -> impl Ord {
         (
             Reverse(self.score),
-            Reverse(self.leaf_score),
             self.scored_child_moves
                 .as_ref()
                 .map_or(0, |s| s.num_good_moves()),
@@ -154,27 +147,25 @@ impl Database {
     ) -> Result<Vec<TiebrokenMove>, DbError> {
         let best_moves = moves.into_best_moves(at_least);
 
-        let (keys, pos_and_natural_orders): (Vec<_>, Vec<_>) = best_moves
+        let (keys, natural_orders): (Vec<_>, Vec<_>) = best_moves
             .moves()
             .iter()
             .map(|entry| {
                 let mut child = pos.clone();
                 let m = entry.uci.to_move(&child).unwrap();
                 child.play_unchecked(&m);
-                let (key, natural_order) = cdb_fen(&child.clone().into_setup(EnPassantMode::Legal));
-                (key, (child, natural_order))
+                cdb_fen(&child.into_setup(EnPassantMode::Legal))
             })
             .unzip();
 
         best_moves
             .into_moves()
             .into_iter()
-            .zip(self.inner.multi_get(&keys).into_iter().zip(pos_and_natural_orders))
-            .map(|(entry, (row, (pos, natural_order)))| {
+            .zip(self.inner.multi_get(&keys).into_iter().zip(natural_orders))
+            .map(|(entry, (row, natural_order))| {
                 Ok(TiebrokenMove {
                     uci: entry.uci,
                     score: entry.score,
-                    leaf_score: self.leaf_score_blocking(pos, entry.score)?,
                     scored_child_moves: match row {
                         Ok(Some(value)) => {
                             Some(ScoredMoves::read_cdb(&mut &value[..], natural_order))
@@ -204,7 +195,6 @@ impl Database {
 
     fn extend_pv_blocking(&self, mut pos: Chess, begin: TiebrokenMove) -> Result<Pv, DbError> {
         let score = WhiteScore::from_relative(begin.score, pos.turn());
-        let leaf_score = WhiteScore::from_relative(begin.leaf_score, pos.turn());
         let mut line = vec![];
 
         let mut seen_hashes: HashSet<Zobrist64> = HashSet::new();
@@ -239,35 +229,6 @@ impl Database {
         Ok(Pv {
             moves: line,
             cp: score,
-            leaf_cp: leaf_score,
         })
-    }
-
-    fn leaf_score_blocking(
-        &self,
-        mut pos: Chess,
-        begin: RelativeScore,
-    ) -> Result<RelativeScore, DbError> {
-        let mut score = WhiteScore::from_relative(begin, pos.turn());
-        return Ok(score.relative(pos.turn()));
-
-        while let Some(scored_moves) =
-            self.get_blocking(pos.clone().into_setup(EnPassantMode::Legal))?
-        {
-            if let Some(best) = scored_moves
-                .into_moves()
-                .into_iter()
-                .max_by_key(|e| e.score)
-            {
-                let m = best.uci.to_move(&pos).expect("legal best move");
-                pos.play_unchecked(&m);
-
-                score = WhiteScore::from_relative(best.score, pos.turn());
-            } else {
-                break;
-            }
-        }
-
-        Ok(score.relative(pos.turn()))
     }
 }
