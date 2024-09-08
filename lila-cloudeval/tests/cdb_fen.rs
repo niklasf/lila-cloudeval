@@ -10,8 +10,8 @@ use shakmaty::{fen::Fen, CastlingMode, Chess};
 struct Record {
     #[serde_as(as = "DisplayFromStr")]
     fen: Fen,
-    cdb_fen: String,
-    cdb_fen_bw: String,
+    hex_fen: String,
+    hex_fen_bw: String,
 }
 
 #[test]
@@ -25,6 +25,7 @@ fn test_cdb_fen() {
         );
 
     for (i, record) in reader.deserialize().enumerate() {
+        let line = i + 1;
         let record: Record = record.expect("record");
 
         if record
@@ -40,9 +41,9 @@ fn test_cdb_fen() {
 
         assert_eq!(
             hex::encode(&bin_fen.as_bytes()[1..]),
-            min(record.cdb_fen, record.cdb_fen_bw),
+            min(record.hex_fen, record.hex_fen_bw),
             "line {}: cdb_fen mismatch for {}",
-            i + 2,
+            line,
             record.fen
         );
     }

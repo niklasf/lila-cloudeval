@@ -157,6 +157,10 @@ impl ScoredMoves {
 pub struct SortedScoredMoves(pub ScoredMoves);
 
 impl SortedScoredMoves {
+    pub fn ply_from_root(&self) -> Option<u32> {
+        self.0.ply_from_root()
+    }
+
     pub fn moves(&self) -> &[ScoredMove] {
         self.0.moves()
     }
