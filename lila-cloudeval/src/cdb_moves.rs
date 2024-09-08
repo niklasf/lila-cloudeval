@@ -38,6 +38,16 @@ const DEC_RANK: [Option<Rank>; 90] = [
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 pub struct RelativeScore(pub i16);
 
+fn good_move_threshold(RelativeScore(max_score): RelativeScore) -> RelativeScore {
+    RelativeScore(if max_score >= 50 {
+        max_score - 1
+    } else if max_score >= -30 {
+        (f64::from(max_score) - 10.0 / (1.0 + (-f64::from(max_score).abs() / 10.0).exp())) as i16
+    } else {
+        -50
+    })
+}
+
 #[derive(Debug)]
 pub struct ScoredMove {
     pub uci: UciMove,
@@ -79,9 +89,18 @@ impl ScoredMoves {
     }
 
     pub fn num_good_moves(&self) -> usize {
+        let maximum_score = self
+            .moves
+            .iter()
+            .map(|e| e.score)
+            .max()
+            .unwrap_or(RelativeScore(0));
+
+        let threshold = good_move_threshold(maximum_score);
+
         self.moves
             .iter()
-            .filter(|entry| entry.score >= RelativeScore(0))
+            .filter(|entry| entry.score >= threshold)
             .count()
     }
 
