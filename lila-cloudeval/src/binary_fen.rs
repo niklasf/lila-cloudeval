@@ -1,9 +1,5 @@
 use bytes::BufMut;
-use shakmaty::variant::Variant;
-use shakmaty::Color;
-use shakmaty::Piece;
-use shakmaty::Role;
-use shakmaty::Setup;
+use shakmaty::{variant::Variant, Color, Piece, Role, Setup, Square};
 
 pub struct VariantSetup {
     setup: Setup,
@@ -28,11 +24,11 @@ impl VariantSetup {
     pub fn write<B: BufMut>(&self, buf: &mut B) {
         buf.put_u64(self.setup.board.occupied().into());
 
-        let pawn_pushed_to = self.setup.ep_square.map(|sq| sq.xor(other));
+        let pawn_pushed_to = self.setup.ep_square.map(|sq| sq.xor(Square::A2));
         let unmoved_rooks = self.setup.castling_rights;
 
+        #[rustfmt::skip]
         let pack_piece = |sq, piece| -> u8 {
-            #[rustfmt::skip]
             match piece {
                 Piece { role: Role::Pawn, .. } if pawn_pushed_to == Some(sq) => 12,
                 Piece { role: Role::Pawn, color: Color::White } => 0,
@@ -65,11 +61,17 @@ impl VariantSetup {
 
         let ply = (u32::from(self.setup.fullmoves) - 1) * 2 + self.setup.turn.fold_wb(0, 1);
         let broken_turn = self.setup.turn.is_black()
-            && (self.setup.board.by_role(Role::King) & self.setup.board.by_color(Color::BLAKC))
+            && (self.setup.board.by_role(Role::King) & self.setup.board.by_color(Color::Black))
                 .is_empty();
         let variant_header = match self.variant {
             Variant::Chess => 0,
             Variant::Crazyhouse => 1,
+            Variant::KingOfTheHill => 4,
+            Variant::ThreeCheck => 5,
+            Variant::Antichess => 6,
+            Variant::Atomic => 7,
+            Variant::Horde => 8,
+            Variant::RacingKings => 9,
         };
 
         if self.setup.halfmoves > 0 || ply > 1 || broken_turn || variant_header != 0 {
@@ -78,6 +80,33 @@ impl VariantSetup {
 
         if ply > 1 || broken_turn || variant_header != 0 {
             put_leb128(ply, buf);
+        }
+
+        if variant_header != 0 {
+            buf.put_u8(variant_header);
+        }
+
+        match self.variant {
+            Variant::ThreeCheck => {
+                let remaining_checks = self.setup.remaining_checks.unwrap_or_default();
+                put_nibbles(
+                    remaining_checks.white.into(),
+                    remaining_checks.black.into(),
+                    buf,
+                );
+            }
+            Variant::Crazyhouse => {
+                let pockets = self.setup.pockets.unwrap_or_default();
+                put_nibbles(pockets.white.pawn, pockets.black.pawn, buf);
+                put_nibbles(pockets.white.knight, pockets.black.knight, buf);
+                put_nibbles(pockets.white.bishop, pockets.black.bishop, buf);
+                put_nibbles(pockets.white.rook, pockets.black.rook, buf);
+                put_nibbles(pockets.white.queen, pockets.black.queen, buf);
+                if self.setup.promoted.any() {
+                    buf.put_u64(self.setup.promoted.into());
+                }
+            }
+            _ => {}
         }
     }
 }
