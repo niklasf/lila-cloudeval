@@ -1,23 +1,55 @@
-use bytes::BufMut;
-use shakmaty::{variant::Variant, Color, Piece, Role, Setup, Square};
+use std::num::NonZeroU32;
+
+use bytes::{Buf, BufMut};
+use shakmaty::{
+    variant::Variant, Bitboard, ByColor, ByRole, Color, Piece, Rank, RemainingChecks, Role, Setup,
+    Square,
+};
 
 pub struct VariantSetup {
     setup: Setup,
     variant: Variant,
 }
 
-fn put_nibbles<B: BufMut>(lo: u8, hi: u8, buf: &mut B) {
+fn write_nibbles<B: BufMut>(lo: u8, hi: u8, buf: &mut B) {
     debug_assert!(lo & 0xf == lo);
     debug_assert!(hi & 0xf == hi);
     buf.put_u8(lo | (hi << 4));
 }
 
-fn put_leb128<B: BufMut>(mut n: u32, buf: &mut B) {
+fn read_nibbles<B: Buf>(buf: &mut B) -> (u8, u8) {
+    let byte = buf.get_u8();
+    (byte & 0xf, byte >> 4)
+}
+
+fn write_leb128<B: BufMut>(mut n: u32, buf: &mut B) {
     while n > 127 {
         buf.put_u8(n as u8 | 128);
         n = n >> 7;
     }
     buf.put_u8(n as u8);
+}
+
+fn read_leb128<B: Buf>(buf: &mut B) -> u32 {
+    let mut n = 0;
+    let mut shift = 0;
+    while buf.has_remaining() {
+        let byte = buf.get_u8();
+        n |= u32::from(byte & 127) << shift;
+        shift += 7;
+        if byte & 128 == 0 {
+            break;
+        }
+    }
+    n
+}
+
+fn read_byte<B: Buf>(buf: &mut B) -> u8 {
+    if buf.has_remaining() {
+        buf.get_u8()
+    } else {
+        0
+    }
 }
 
 impl VariantSetup {
@@ -48,7 +80,7 @@ impl VariantSetup {
 
         let mut pieces = self.setup.board.clone().into_iter();
         while let Some((sq, piece)) = pieces.next() {
-            put_nibbles(
+            write_nibbles(
                 pack_piece(sq, piece),
                 if let Some((sq, piece)) = pieces.next() {
                     pack_piece(sq, piece)
@@ -75,11 +107,11 @@ impl VariantSetup {
         };
 
         if self.setup.halfmoves > 0 || ply > 1 || broken_turn || variant_header != 0 {
-            put_leb128(self.setup.halfmoves, buf);
+            write_leb128(self.setup.halfmoves, buf);
         }
 
         if ply > 1 || broken_turn || variant_header != 0 {
-            put_leb128(ply, buf);
+            write_leb128(ply, buf);
         }
 
         if variant_header != 0 {
@@ -89,7 +121,7 @@ impl VariantSetup {
         match self.variant {
             Variant::ThreeCheck => {
                 let remaining_checks = self.setup.remaining_checks.unwrap_or_default();
-                put_nibbles(
+                write_nibbles(
                     remaining_checks.white.into(),
                     remaining_checks.black.into(),
                     buf,
@@ -97,16 +129,125 @@ impl VariantSetup {
             }
             Variant::Crazyhouse => {
                 let pockets = self.setup.pockets.unwrap_or_default();
-                put_nibbles(pockets.white.pawn, pockets.black.pawn, buf);
-                put_nibbles(pockets.white.knight, pockets.black.knight, buf);
-                put_nibbles(pockets.white.bishop, pockets.black.bishop, buf);
-                put_nibbles(pockets.white.rook, pockets.black.rook, buf);
-                put_nibbles(pockets.white.queen, pockets.black.queen, buf);
+                write_nibbles(pockets.white.pawn, pockets.black.pawn, buf);
+                write_nibbles(pockets.white.knight, pockets.black.knight, buf);
+                write_nibbles(pockets.white.bishop, pockets.black.bishop, buf);
+                write_nibbles(pockets.white.rook, pockets.black.rook, buf);
+                write_nibbles(pockets.white.queen, pockets.black.queen, buf);
                 if self.setup.promoted.any() {
                     buf.put_u64(self.setup.promoted.into());
                 }
             }
             _ => {}
         }
+    }
+
+    pub fn read<B: Buf>(buf: &mut B) -> VariantSetup {
+        let mut setup = Setup::empty();
+
+        #[rustfmt::skip]
+        let mut unpack_piece = |sq: Square, packed: u8| {
+            setup.board.set_piece_at(
+                sq,
+                match packed {
+                    0 => Piece { color: Color::White, role: Role::Pawn },
+                    1 => Piece { color: Color::Black, role: Role::Pawn },
+                    2 => Piece { color: Color::White, role: Role::Knight },
+                    3 => Piece { color: Color::Black, role: Role::Knight },
+                    4 => Piece { color: Color::White, role: Role::Bishop },
+                    5 => Piece { color: Color::Black, role: Role::Bishop },
+                    6 => Piece { color: Color::White, role: Role::Rook },
+                    7 => Piece { color: Color::Black, role: Role::Rook },
+                    8 => Piece { color: Color::White, role: Role::Queen },
+                    9 => Piece { color: Color::Black, role: Role::Queen },
+                    10 => Piece { color: Color::White, role: Role::King },
+                    11 => Piece { color: Color::Black, role: Role::King },
+                    12 => {
+                        setup.ep_square = Some(sq.xor(Square::A2));
+                        Color::from_white(sq.rank() <= Rank::Fourth).pawn()
+                    }
+                    13 => {
+                        setup.castling_rights.add(sq);
+                        Piece { color: Color::White, role: Role::Rook }
+                    }
+                    14 => {
+                        setup.castling_rights.add(sq);
+                        Piece { color: Color::Black, role: Role::Rook }
+                    }
+                    15 => {
+                        setup.turn = Color::Black;
+                        Piece { color: Color::Black, role: Role::King }
+                    }
+                    _ => panic!("invalid packed piece: {packed} at {sq}"),
+                },
+            );
+        };
+
+        let mut occupied_iter = Bitboard(buf.get_u64()).into_iter();
+        while let Some(sq) = occupied_iter.next() {
+            let (lo, hi) = read_nibbles(buf);
+            unpack_piece(sq, lo);
+            if let Some(sq) = occupied_iter.next() {
+                unpack_piece(sq, hi);
+            }
+        }
+
+        setup.halfmoves = read_leb128(buf);
+        let ply = read_leb128(buf);
+        let variant = match read_byte(buf) {
+            0 => Variant::Chess,
+            1 => Variant::Crazyhouse,
+            4 => Variant::KingOfTheHill,
+            5 => Variant::ThreeCheck,
+            6 => Variant::Antichess,
+            7 => Variant::Atomic,
+            8 => Variant::Horde,
+            9 => Variant::RacingKings,
+            n => panic!("invalid variant header: {n}"),
+        };
+
+        if ply % 2 == 1 {
+            setup.turn = Color::Black;
+        }
+
+        setup.fullmoves = NonZeroU32::new(1 + ply / 2).expect("fullmoves");
+
+        match variant {
+            Variant::ThreeCheck => {
+                let (lo, hi) = read_nibbles(buf);
+                setup.remaining_checks = Some(ByColor {
+                    white: RemainingChecks::new(lo.into()),
+                    black: RemainingChecks::new(hi.into()),
+                });
+            }
+            Variant::Crazyhouse => {
+                let (wp, bp) = read_nibbles(buf);
+                let (wn, bn) = read_nibbles(buf);
+                let (wb, bb) = read_nibbles(buf);
+                let (wr, br) = read_nibbles(buf);
+                let (wq, bq) = read_nibbles(buf);
+                setup.pockets = Some(ByColor {
+                    white: ByRole {
+                        pawn: wp,
+                        knight: wn,
+                        bishop: wb,
+                        rook: wr,
+                        queen: wq,
+                        king: 0,
+                    },
+                    black: ByRole {
+                        pawn: bp,
+                        knight: bn,
+                        bishop: bb,
+                        rook: br,
+                        queen: bq,
+                        king: 0,
+                    },
+                });
+            }
+            _ => {}
+        }
+
+        VariantSetup { setup, variant }
     }
 }
