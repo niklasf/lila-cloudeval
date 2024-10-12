@@ -6,6 +6,7 @@ use shakmaty::{
     Square,
 };
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct VariantSetup {
     setup: Setup,
     variant: Variant,
@@ -53,6 +54,34 @@ fn read_byte<B: Buf>(buf: &mut B) -> u8 {
 }
 
 impl VariantSetup {
+    pub fn new_normalized(mut setup: Setup, variant: Variant) -> VariantSetup {
+        setup.castling_rights =
+            (setup.castling_rights & Rank::First & setup.board.rooks() & setup.board.white()) |
+            (setup.castling_rights & Rank::Eighth & setup.board.rooks() & setup.board.black()) ;
+
+        setup.ep_square = setup.ep_square.filter(|sq| {
+            let pawn_pushed_to = sq.xor(Square::A2);
+            setup.board.piece_at(pawn_pushed_to) == Some(Role::Pawn.of(!setup.turn))
+        });
+
+        setup.halfmoves = 0;
+        setup.fullmoves = NonZeroU32::MIN;
+
+        if variant != Variant::Crazyhouse {
+            setup.promoted = Bitboard::EMPTY;
+            setup.pockets = None;
+        }
+
+        if variant != Variant::ThreeCheck {
+            setup.remaining_checks = None;
+        }
+
+        VariantSetup {
+            setup,
+            variant
+        }
+    }
+
     pub fn write<B: BufMut>(&self, buf: &mut B) {
         buf.put_u64(self.setup.board.occupied().into());
 
