@@ -2,6 +2,7 @@
 members = [
     "lila-cloudeval",
     "lila-cloudeval-bench",
+    "lila-cloudeval/fuzz",
     "terarkdb",
     "terarkdb-sys",
 ]
